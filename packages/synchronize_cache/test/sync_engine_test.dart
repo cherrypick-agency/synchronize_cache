@@ -5,7 +5,7 @@ import 'package:drift/native.dart';
 import 'package:synchronize_cache/synchronize_cache.dart';
 import 'package:test/test.dart' hide isNotNull, isNull;
 
-part 'sync_engine_test.g.dart';
+import 'sync_engine_test.drift.dart';
 
 // Тестовая модель
 class TestItem {
@@ -50,8 +50,11 @@ class TestItems extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [TestItems, SyncOutbox, SyncCursors])
-class TestDatabase extends _$TestDatabase with SyncDatabaseMixin {
+@DriftDatabase(
+  include: {'package:synchronize_cache/src/sync_tables.drift'},
+  tables: [TestItems],
+)
+class TestDatabase extends $TestDatabase with SyncDatabaseMixin {
   TestDatabase() : super(NativeDatabase.memory());
 
   @override
@@ -103,9 +106,8 @@ class MockTransport implements TransportAdapter {
   Future<FetchResult> fetch({
     required String kind,
     required String id,
-  }) async {
-    return const FetchNotFound();
-  }
+  }) async =>
+      const FetchNotFound();
 
   @override
   Future<bool> health() async => healthStatus;
@@ -354,6 +356,11 @@ void main() {
         ],
       );
 
+      await db.setCursor(CursorKinds.fullResync, Cursor(
+        ts: DateTime.now().toUtc(),
+        lastId: '',
+      ));
+
       await engine.sync(kinds: {'other_kind'});
 
       // Should not pull test_item since we only asked for other_kind
@@ -376,18 +383,16 @@ void main() {
             toInsertable: (item) => item.toInsertable(),
           ),
         ],
-      );
-
-      engine.startAuto(interval: const Duration(milliseconds: 100));
+      )..startAuto(interval: const Duration(milliseconds: 100));
 
       await Future<void>.delayed(const Duration(milliseconds: 250));
 
-      engine.stopAuto();
+      engine
+        ..stopAuto()
+        ..dispose();
 
       // Should have synced at least once
       expect(transport.pullCallCount, greaterThan(0));
-
-      engine.dispose();
     });
   });
 
@@ -857,6 +862,327 @@ void main() {
     });
   });
 
+  group('Full Resync', () {
+    test('fullResync resets cursors and pulls all data', () async {
+      final transport = MockTransport();
+      final now = DateTime.now().toUtc();
+      transport.pullResponses.addAll([
+        {
+          'id': 'item-1',
+          'updated_at': now.toIso8601String(),
+          'name': 'Full Resync Item',
+        },
+      ]);
+
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.setCursor('test_item', Cursor(
+        ts: DateTime(2024, 1, 1).toUtc(),
+        lastId: 'old-item',
+      ));
+
+      await engine.fullResync();
+
+      final cursor = await db.getCursor('test_item');
+      expect(cursor != null, isTrue);
+      expect(cursor!.lastId, 'item-1');
+
+      final items = await db.select(db.testItems).get();
+      expect(items.length, 1);
+      expect(items.first.name, 'Full Resync Item');
+
+      engine.dispose();
+    });
+
+    test('fullResync emits FullResyncStarted event with manual reason', () async {
+      final transport = MockTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      final events = <SyncEvent>[];
+      final sub = engine.events.listen(events.add);
+
+      await engine.fullResync();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      await sub.cancel();
+
+      final fullResyncEvents = events.whereType<FullResyncStarted>().toList();
+      expect(fullResyncEvents.length, 1);
+      expect(fullResyncEvents.first.reason, FullResyncReason.manual);
+
+      engine.dispose();
+    });
+
+    test('sync triggers fullResync when interval exceeded', () async {
+      final transport = MockTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+        config: const SyncConfig(
+          fullResyncInterval: Duration(days: 7),
+        ),
+      );
+
+      final events = <SyncEvent>[];
+      final sub = engine.events.listen(events.add);
+
+      await engine.sync();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      await sub.cancel();
+
+      final fullResyncEvents = events.whereType<FullResyncStarted>().toList();
+      expect(fullResyncEvents.length, 1);
+      expect(fullResyncEvents.first.reason, FullResyncReason.scheduled);
+
+      engine.dispose();
+    });
+
+    test('sync does not trigger fullResync when interval not exceeded', () async {
+      final transport = MockTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+        config: const SyncConfig(
+          fullResyncInterval: Duration(days: 7),
+        ),
+      );
+
+      await db.setCursor(CursorKinds.fullResync, Cursor(
+        ts: DateTime.now().toUtc(),
+        lastId: '',
+      ));
+
+      final events = <SyncEvent>[];
+      final sub = engine.events.listen(events.add);
+
+      await engine.sync();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      await sub.cancel();
+
+      final fullResyncEvents = events.whereType<FullResyncStarted>().toList();
+      expect(fullResyncEvents, isEmpty);
+
+      engine.dispose();
+    });
+
+    test('fullResync pushes outbox before resetting cursors', () async {
+      final transport = MockTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.enqueue(UpsertOp(
+        opId: 'before-resync',
+        kind: 'test_item',
+        id: 'item-1',
+        localTimestamp: DateTime.now().toUtc(),
+        payloadJson: {'id': 'item-1', 'name': 'Test'},
+      ));
+
+      await engine.fullResync();
+
+      expect(transport.pushedOps.length, 1);
+      expect(transport.pushedOps.first.opId, 'before-resync');
+
+      final outbox = await db.takeOutbox();
+      expect(outbox, isEmpty);
+
+      engine.dispose();
+    });
+
+    test('fullResync with clearData clears tables', () async {
+      final transport = MockTransport();
+      final now = DateTime.now().toUtc();
+      transport.pullResponses.addAll([
+        {
+          'id': 'new-item',
+          'updated_at': now.toIso8601String(),
+          'name': 'New Item After Clear',
+        },
+      ]);
+
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.into(db.testItems).insert(TestItemsCompanion.insert(
+        id: 'old-item',
+        name: 'Old Item',
+        updatedAt: DateTime(2024, 1, 1).toUtc(),
+      ));
+
+      var itemsBefore = await db.select(db.testItems).get();
+      expect(itemsBefore.length, 1);
+      expect(itemsBefore.first.id, 'old-item');
+
+      await engine.fullResync(clearData: true);
+
+      final itemsAfter = await db.select(db.testItems).get();
+      expect(itemsAfter.length, 1);
+      expect(itemsAfter.first.id, 'new-item');
+      expect(itemsAfter.first.name, 'New Item After Clear');
+
+      engine.dispose();
+    });
+
+    test('fullResync saves lastFullResync timestamp', () async {
+      final transport = MockTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      final beforeSync = DateTime.now().toUtc();
+      await engine.fullResync();
+      final afterSync = DateTime.now().toUtc();
+
+      final cursor = await db.getCursor(CursorKinds.fullResync);
+      expect(cursor != null, isTrue);
+      expect(cursor!.ts.isAfter(beforeSync.subtract(const Duration(seconds: 1))), isTrue);
+      expect(cursor.ts.isBefore(afterSync.add(const Duration(seconds: 1))), isTrue);
+
+      engine.dispose();
+    });
+
+    test('fullResync returns SyncStats', () async {
+      final transport = MockTransport();
+      final now = DateTime.now().toUtc();
+      transport.pullResponses.addAll([
+        {'id': 'item-1', 'updated_at': now.toIso8601String(), 'name': 'Item 1'},
+        {'id': 'item-2', 'updated_at': now.toIso8601String(), 'name': 'Item 2'},
+      ]);
+
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.enqueue(UpsertOp(
+        opId: 'op-1',
+        kind: 'test_item',
+        id: 'item-1',
+        localTimestamp: DateTime.now().toUtc(),
+        payloadJson: {'id': 'item-1', 'name': 'Test'},
+      ));
+
+      final stats = await engine.fullResync();
+
+      expect(stats.pushed, 1);
+      expect(stats.pulled, 2);
+
+      engine.dispose();
+    });
+
+    test('concurrent fullResync calls are prevented', () async {
+      final transport = SlowTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      final future1 = engine.fullResync();
+      final future2 = engine.fullResync();
+
+      final results = await Future.wait([future1, future2]);
+
+      expect(results[1].pushed, 0);
+      expect(results[1].pulled, 0);
+
+      engine.dispose();
+    });
+  });
+
   group('UpsertOp with baseUpdatedAt and changedFields', () {
     test('enqueue preserves baseUpdatedAt', () async {
       final baseTime = DateTime(2024, 1, 1, 12, 0, 0).toUtc();
@@ -976,9 +1302,8 @@ class RetryTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async {
-    return PullPage(items: []);
-  }
+  }) async =>
+      PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();
@@ -1026,15 +1351,52 @@ class ConflictingTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async {
-    return PullPage(items: []);
-  }
+  }) async =>
+      PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async {
     forcePushCalled = true;
     return const PushSuccess();
   }
+
+  @override
+  Future<FetchResult> fetch({required String kind, required String id}) async =>
+      const FetchNotFound();
+
+  @override
+  Future<bool> health() async => true;
+}
+
+class SlowTransport implements TransportAdapter {
+  @override
+  Future<BatchPushResult> push(List<Op> ops) async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    return BatchPushResult(
+      results: ops
+          .map((op) => OpPushResult(
+                opId: op.opId,
+                result: const PushSuccess(),
+              ))
+          .toList(),
+    );
+  }
+
+  @override
+  Future<PullPage> pull({
+    required String kind,
+    required DateTime updatedSince,
+    required int pageSize,
+    String? pageToken,
+    String? afterId,
+    bool includeDeleted = true,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    return PullPage(items: []);
+  }
+
+  @override
+  Future<PushResult> forcePush(Op op) async => const PushSuccess();
 
   @override
   Future<FetchResult> fetch({required String kind, required String id}) async =>
