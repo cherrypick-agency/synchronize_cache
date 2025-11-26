@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:example/database.dart';
 import 'package:example/models/daily_feeling.dart';
+import 'package:example/models/daily_feeling.drift.dart';
 import 'package:example/models/health_record.dart';
+import 'package:example/models/health_record.drift.dart';
 import 'package:synchronize_cache/synchronize_cache.dart';
 import 'package:synchronize_cache_rest/synchronize_cache_rest.dart';
 
@@ -63,9 +65,8 @@ Future<void> main() async {
         stdout.writeln('Operation pushed: $k/$id');
       case OperationFailedEvent(kind: final k, entityId: final id, error: final e):
         stdout.writeln('Operation failed: $k/$id - $e');
-      // ignore_for_file: deprecated_member_use
-      case ConflictEvent():
-        stdout.writeln('Conflict detected (deprecated)');
+      case FullResyncStarted(reason: final r):
+        stdout.writeln('Full resync started: $r');
     }
   });
 

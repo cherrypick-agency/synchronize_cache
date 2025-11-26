@@ -7,52 +7,14 @@ import 'package:example/models/health_record.dart';
 import 'package:path/path.dart' as p;
 import 'package:synchronize_cache/synchronize_cache.dart';
 
-part 'database.g.dart';
-
-/// Локальное определение таблицы SyncOutbox для Drift.
-/// Использует типы из пакета synchronize_cache.
-@UseRowClass(SyncOutboxData)
-class SyncOutboxLocal extends Table {
-  TextColumn get opId => text()();
-  TextColumn get kind => text()();
-  TextColumn get entityId => text()();
-  TextColumn get op => text()();
-  TextColumn get payload => text().nullable()();
-  IntColumn get ts => integer()();
-  IntColumn get tryCount => integer().withDefault(const Constant(0))();
-  IntColumn get baseUpdatedAt => integer().nullable()();
-  TextColumn get changedFields => text().nullable()();
-
-  @override
-  Set<Column> get primaryKey => {opId};
-
-  @override
-  String get tableName => 'sync_outbox';
-}
-
-/// Локальное определение таблицы SyncCursors для Drift.
-/// Использует типы из пакета synchronize_cache.
-@UseRowClass(SyncCursorsData)
-class SyncCursorsLocal extends Table {
-  TextColumn get kind => text()();
-  IntColumn get ts => integer()();
-  TextColumn get lastId => text()();
-
-  @override
-  Set<Column> get primaryKey => {kind};
-
-  @override
-  String get tableName => 'sync_cursors';
-}
+import 'package:example/database.drift.dart';
 
 /// База данных приложения с поддержкой синхронизации.
-@DriftDatabase(tables: [
-  HealthRecords,
-  DailyFeelings,
-  SyncOutboxLocal,
-  SyncCursorsLocal,
-])
-class AppDatabase extends _$AppDatabase with SyncDatabaseMixin {
+@DriftDatabase(
+  include: {'package:synchronize_cache/src/sync_tables.drift'},
+  tables: [HealthRecords, DailyFeelings],
+)
+class AppDatabase extends $AppDatabase with SyncDatabaseMixin {
   AppDatabase(super.e);
 
   AppDatabase._(super.e);
@@ -66,9 +28,7 @@ class AppDatabase extends _$AppDatabase with SyncDatabaseMixin {
   }
 
   /// Создать in-memory базу данных (для тестов).
-  static AppDatabase inMemory() {
-    return AppDatabase(NativeDatabase.memory());
-  }
+  static AppDatabase inMemory() => AppDatabase(NativeDatabase.memory());
 
   @override
   int get schemaVersion => 1;

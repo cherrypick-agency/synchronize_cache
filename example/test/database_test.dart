@@ -1,6 +1,8 @@
 import 'package:example/database.dart';
 import 'package:example/models/daily_feeling.dart';
+import 'package:example/models/daily_feeling.drift.dart';
 import 'package:example/models/health_record.dart';
+import 'package:example/models/health_record.drift.dart';
 import 'package:synchronize_cache/synchronize_cache.dart';
 import 'package:test/test.dart';
 
