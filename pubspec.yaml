@@ -8,3 +8,5 @@ workspace:
   - packages/synchronize_cache
   - packages/synchronize_cache_rest
   - example
+dev_dependencies:
+  lints: ^6.0.0

@@ -1,3 +1,5 @@
+include: package:lints/recommended.yaml
+
 analyzer:
   language:
     strict-raw-types: true
@@ -11,6 +13,16 @@ analyzer:
 linter:
   rules:
     always_use_package_imports: true
-    prefer_single_quotes: true
     cancel_subscriptions: true
     close_sinks: true
+    prefer_single_quotes: true
+    avoid_bool_literals_in_conditional_expressions: true
+    avoid_print: true
+    avoid_unused_constructor_parameters: true
+    cascade_invocations: true
+    no_leading_underscores_for_local_identifiers: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_expression_function_bodies: true
+    prefer_final_in_for_each: true
+    prefer_final_locals: true
