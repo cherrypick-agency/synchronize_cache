@@ -36,8 +36,8 @@ jobs:
       - name: Lint (dart analyze)
         run: dart analyze .
 
-      - name: Test synchronize_cache
-        run: flutter test packages/synchronize_cache
+      - name: Test synchronize_cache with coverage
+        run: flutter test --coverage packages/synchronize_cache
 
       - name: Test synchronize_cache_rest
         run: flutter test packages/synchronize_cache_rest
@@ -46,3 +46,11 @@ jobs:
         run: flutter test
         working-directory: example
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

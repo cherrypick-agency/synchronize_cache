@@ -1,6 +1,7 @@
 # Offline-first Cache Sync
 
 [![CI](https://github.com/cherrypick-agency/synchronize_cache/actions/workflows/ci.yml/badge.svg)](https://github.com/cherrypick-agency/synchronize_cache/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/cherrypick-agency/synchronize_cache/graph/badge.svg)](https://codecov.io/gh/cherrypick-agency/synchronize_cache)
 
 Dart/Flutter библиотека для offline-first работы с данными. Локальный кэш на Drift + синхронизация с сервером.
 
