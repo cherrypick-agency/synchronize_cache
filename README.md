@@ -3,40 +3,40 @@
 [![CI](https://github.com/cherrypick-agency/synchronize_cache/actions/workflows/ci.yml/badge.svg)](https://github.com/cherrypick-agency/synchronize_cache/actions/workflows/ci.yml)
 ![coverage](https://img.shields.io/badge/coverage-52.8%25-yellow)
 
-Dart/Flutter библиотека для offline-first работы с данными. Локальный кэш на Drift + синхронизация с сервером.
+Dart/Flutter library for offline-first data handling. Local cache on Drift + server sync.
 
-**Принцип:** читаем локально → пишем локально + в outbox → sync() отправляет и получает данные.
+**Principle:** read locally → write locally + to outbox → `sync()` pushes and pulls data.
 
-## Содержание
+## Table of contents
 
 - [Offline-first Cache Sync](#offline-first-cache-sync)
-  - [Содержание](#содержание)
-  - [Быстрый старт](#быстрый-старт)
-    - [1. Установка](#1-установка)
-    - [2. Настройка базы данных](#2-настройка-базы-данных)
-    - [3. Настройка SyncEngine](#3-настройка-syncengine)
-    - [4. Модель данных](#4-модель-данных)
-  - [Работа с данными](#работа-с-данными)
-    - [Чтение](#чтение)
-    - [Локальные изменения + outbox](#локальные-изменения--outbox)
-    - [Синхронизация](#синхронизация)
-  - [Разрешение конфликтов](#разрешение-конфликтов)
-    - [Стратегии](#стратегии)
+  - [Table of contents](#table-of-contents)
+  - [Quick start](#quick-start)
+    - [1. Installation](#1-installation)
+    - [2. Database setup](#2-database-setup)
+    - [3. SyncEngine setup](#3-syncengine-setup)
+    - [4. Data model](#4-data-model)
+  - [Working with data](#working-with-data)
+    - [Reading](#reading)
+    - [Local changes + outbox](#local-changes--outbox)
+    - [Synchronization](#synchronization)
+  - [Conflict resolution](#conflict-resolution)
+    - [Strategies](#strategies)
     - [autoPreserve](#autopreserve)
-    - [Ручное разрешение](#ручное-разрешение)
-    - [Кастомный merge](#кастомный-merge)
-    - [Стратегия для отдельных таблиц](#стратегия-для-отдельных-таблиц)
-  - [События и статистика](#события-и-статистика)
-  - [Требования к серверу](#требования-к-серверу)
+    - [Manual resolution](#manual-resolution)
+    - [Custom merge](#custom-merge)
+    - [Per-table strategy](#per-table-strategy)
+  - [Events and stats](#events-and-stats)
+  - [Server requirements](#server-requirements)
   - [CI/CD](#cicd)
 
 ---
 
-## Быстрый старт
+## Quick start
 
-Минимальный чеклист: ставим пакеты, готовим Drift-базу с `include` для sync таблиц, затем регистрируем свои таблицы в `SyncEngine`.
+Minimal checklist: install packages, prepare a Drift database with `include` for sync tables, then register your tables in `SyncEngine`.
 
-### 1. Установка
+### 1. Installation
 
 ```yaml
 dependencies:
@@ -51,7 +51,7 @@ dev_dependencies:
   json_serializable: ^6.7.0
 ```
 
-**build.yaml** (требуется modular generation для межпакетного шаринга):
+**build.yaml** (modular generation is required for cross-package sharing):
 
 ```yaml
 targets:
@@ -68,18 +68,18 @@ targets:
         options: *options
 ```
 
-### 2. Настройка базы данных
+### 2. Database setup
 
-1. Описываем свои доменные таблицы и добавляем `SyncColumns`, чтобы автоматом получить `updatedAt/deletedAt/deletedAtLocal`.
-2. Подключаем sync таблицы через `include` — это автоматически добавит `sync_outbox` и `sync_cursors`.
-3. Наследуем `SyncDatabaseMixin`, который даёт `enqueue()`, `takeOutbox()`, `setCursor()` и другие утилиты.
+1. Describe your domain tables and add `SyncColumns` to automatically get `updatedAt/deletedAt/deletedAtLocal`.
+2. Include the sync tables via `include` — this will automatically add `sync_outbox` and `sync_cursors`.
+3. Extend `SyncDatabaseMixin`, which provides `enqueue()`, `takeOutbox()`, `setCursor()`, and other utilities.
 
 ```dart
 import 'package:drift/drift.dart';
 import 'package:offline_first_sync_drift/offline_first_sync_drift.dart';
 
 import 'database.drift.dart';
-import 'models/daily_feeling.dart'; // см. секцию "Модель данных"
+import 'models/daily_feeling.dart'; // see "Data model" section
 
 @DriftDatabase(
   include: {'package:offline_first_sync_drift/src/sync_tables.drift'},
@@ -93,9 +93,9 @@ class AppDatabase extends $AppDatabase with SyncDatabaseMixin {
 }
 ```
 
-### 3. Настройка SyncEngine
+### 3. SyncEngine setup
 
-SyncEngine связывает локальную БД и транспорт. В `tables` перечисляем каждую сущность: `kind` - имя на сервере, `table` - ссылка на Drift-таблицу, `fromJson`/`toJson` - преобразования между локальной моделью и API.
+SyncEngine connects the local DB and the transport. In `tables` list each entity: `kind` is the server name, `table` is the Drift table reference, `fromJson`/`toJson` convert between the local model and the API.
 
 ```dart
 import 'package:offline_first_sync_drift_rest/offline_first_sync_drift_rest.dart';
@@ -120,16 +120,16 @@ final engine = SyncEngine(
 );
 ```
 
-### 4. Модель данных
+### 4. Data model
 
-Для участия в синхронизации таблица должна:
+To participate in sync a table must:
 
-- иметь строковый первичный ключ `id`;
-- хранить `updatedAt` в UTC (сервер обновляет это поле сам);
-- опционально иметь `deletedAt` для soft-delete и `deletedAtLocal` для локальных пометок;
-- содержать любые ваши бизнес-поля.
+- have a string primary key `id`;
+- store `updatedAt` in UTC (the server updates this field);
+- optionally have `deletedAt` for soft-delete and `deletedAtLocal` for local marks;
+- contain any of your business fields.
 
-Добавьте `SyncColumns`, и все обязательные системные поля появятся автоматически - вам останется описать только доменные колонки. Таблица при этом автоматически реализует `SynchronizableTable`, так что можно типобезопасно отличать её от обычных Drift таблиц:
+Add `SyncColumns` to get all required system fields automatically — you only describe domain columns. The table automatically implements `SynchronizableTable`, so you can type-safely distinguish it from regular Drift tables:
 
 ```dart
 import 'package:drift/drift.dart';
@@ -138,7 +138,7 @@ import 'package:offline_first_sync_drift/offline_first_sync_drift.dart';
 
 part 'daily_feeling.g.dart';
 
-/// Модель данных (row class).
+/// Data model (row class).
 @JsonSerializable(fieldRename: FieldRename.snake)
 class DailyFeeling {
   DailyFeeling({
@@ -166,10 +166,10 @@ class DailyFeeling {
 
   Map<String, dynamic> toJson() => _$DailyFeelingToJson(this);
 
-  // toInsertable() генерируется автоматически благодаря generateInsertable: true
+  // toInsertable() is generated automatically thanks to generateInsertable: true
 }
 
-/// Drift-таблица со всеми sync-полями.
+/// Drift table with all sync fields.
 @UseRowClass(DailyFeeling, generateInsertable: true)
 class DailyFeelings extends Table with SyncColumns {
   TextColumn get id => text()();
@@ -185,13 +185,13 @@ class DailyFeelings extends Table with SyncColumns {
 
 ---
 
-## Работа с данными
+## Working with data
 
-Читаем как обычный Drift-слой, а при изменениях придерживаемся паттерна «локально обновили → положили операцию в outbox».
+Use Drift as usual, and for changes follow the pattern “update locally → put the operation into outbox”.
 
-### Чтение
+### Reading
 
-Работаем с Drift как обычно: все данные уже в локальной БД, запросы мгновенные и офлайн-friendly.
+Queries behave the same as standard Drift: data is already in the local DB, queries are instant and offline-friendly.
 
 ```dart
 final all = await db.select(db.dailyFeelings).get();
@@ -205,9 +205,9 @@ db.select(db.dailyFeelings).watch().listen((list) {
 });
 ```
 
-### Локальные изменения + outbox
+### Local changes + outbox
 
-Каждая операция состоит из двух шагов: сначала меняем локальную таблицу, потом ставим операцию в очередь через `db.enqueue(...)`. Для апдейтов обязательно отправляем `baseUpdatedAt` (когда запись пришла с сервера) и `changedFields` (какие поля правил пользователь).
+Each operation has two steps: first update the local table, then enqueue the operation via `db.enqueue(...)`. For updates, always send `baseUpdatedAt` (when the record arrived from the server) and `changedFields` (which fields the user modified).
 
 ```dart
 Future<void> create(DailyFeeling feeling) async {
@@ -249,9 +249,9 @@ Future<void> deleteFeeling(String id, DateTime? serverUpdatedAt) async {
 }
 ```
 
-### Синхронизация
+### Synchronization
 
-Вручную вызываем `sync()` когда нужно (pull/push/merge), либо включаем авто-таймер. Можно ограничивать список `kind`, если нужно обновить только часть данных.
+Call `sync()` manually when needed (pull/push/merge) or enable the auto timer. You can limit `kinds` if you only need to refresh part of the data.
 
 ```dart
 // Вручную
@@ -267,24 +267,24 @@ await engine.sync(kinds: {'daily_feeling', 'health_record'});
 
 ---
 
-## Разрешение конфликтов
+## Conflict resolution
 
-Конфликт возникает когда данные изменились и на клиенте, и на сервере. Поведение задаём через `SyncConfig(conflictStrategy: ...)` глобально либо `tableConflictConfigs` для отдельных таблиц.
+A conflict happens when data changed both on the client and server. Configure behavior via `SyncConfig(conflictStrategy: ...)` globally or `tableConflictConfigs` for specific tables.
 
-### Стратегии
+### Strategies
 
-| Стратегия | Описание |
-|-----------|----------|
-| `autoPreserve` | **(по умолчанию)** Умный merge - сохраняет все данные |
-| `serverWins` | Серверная версия побеждает |
-| `clientWins` | Клиентская версия побеждает (force push) |
-| `lastWriteWins` | Побеждает более поздний timestamp |
-| `merge` | Кастомная функция слияния |
-| `manual` | Ручное разрешение через callback |
+| Strategy | Description |
+|----------|-------------|
+| `autoPreserve` | **(default)** Smart merge that keeps all data |
+| `serverWins` | Server version wins |
+| `clientWins` | Client version wins (force push) |
+| `lastWriteWins` | Later timestamp wins |
+| `merge` | Custom merge function |
+| `manual` | Manual resolution via callback |
 
 ### autoPreserve
 
-Стратегия по умолчанию - объединяет данные без потерь:
+Default strategy — merges without losing data:
 
 ```dart
 // Локально: {mood: 5, notes: "My notes"}
@@ -292,15 +292,15 @@ await engine.sync(kinds: {'daily_feeling', 'health_record'});
 // Результат:  {mood: 5, energy: 7, notes: "My notes"}
 ```
 
-Как работает:
-1. Берёт серверные данные как базу
-2. Применяет локальные изменения (только `changedFields` если указаны)
-3. Списки объединяет без дубликатов
-4. Вложенные объекты мержит рекурсивно
-5. Системные поля (`id`, `updatedAt`, `createdAt`) берёт с сервера
-6. Отправляет результат с `X-Force-Update: true`
+How it works:
+1. Takes server data as the base
+2. Applies local changes (only `changedFields` if provided)
+3. Merges lists without duplicates
+4. Merges nested objects recursively
+5. Uses server values for system fields (`id`, `updatedAt`, `createdAt`)
+6. Sends the result with `X-Force-Update: true`
 
-### Ручное разрешение
+### Manual resolution
 
 ```dart
 final engine = SyncEngine(
@@ -308,7 +308,7 @@ final engine = SyncEngine(
   config: SyncConfig(
     conflictStrategy: ConflictStrategy.manual,
     conflictResolver: (conflict) async {
-      // Показать диалог пользователю или решить программно
+      // Show a dialog to the user or resolve programmatically
       final choice = await showConflictDialog(conflict);
       
       return switch (choice) {
@@ -323,7 +323,7 @@ final engine = SyncEngine(
 );
 ```
 
-### Кастомный merge
+### Custom merge
 
 ```dart
 final engine = SyncEngine(
@@ -336,13 +336,13 @@ final engine = SyncEngine(
   ),
 );
 
-// Встроенные утилиты
+// Built-in helpers
 ConflictUtils.defaultMerge(local, server);
 ConflictUtils.deepMerge(local, server);
 ConflictUtils.preservingMerge(local, server, changedFields: {'mood'});
 ```
 
-### Стратегия для отдельных таблиц
+### Per-table strategy
 
 ```dart
 final engine = SyncEngine(
@@ -357,12 +357,12 @@ final engine = SyncEngine(
 
 ---
 
-## События и статистика
+## Events and stats
 
-SyncEngine шлёт поток событий, который удобно использовать для UI-индикаторов, логирования и метрик.
+SyncEngine emits an event stream that is handy for UI indicators, logging, and metrics.
 
 ```dart
-// Подписка на события
+// Subscribe to events
 engine.events.listen((event) {
   switch (event) {
     case SyncStarted(:final phase):
@@ -378,7 +378,7 @@ engine.events.listen((event) {
   }
 });
 
-// Статистика после sync
+// Stats after sync
 final stats = await engine.sync();
 print('Отправлено: ${stats.pushed}');
 print('Получено: ${stats.pulled}');
@@ -389,23 +389,23 @@ print('Ошибок: ${stats.errors}');
 
 ---
 
-## Требования к серверу
+## Server requirements
 
-Сервер обязан поддерживать предсказуемый REST-контракт: идемпотентные PUT-запросы, стабильную пагинацию и проверку конфликтов по `updatedAt`. Полное руководство с примерами и чеклистом см. в [`docs/backend_guidelines.md`](docs/backend_guidelines.md).
+The server must support a predictable REST contract: idempotent PUT requests, stable pagination, and conflict checks via `updatedAt`. See [`docs/backend_guidelines.md`](docs/backend_guidelines.md) for the full guide with examples and a checklist.
 
-Краткое напоминание:
+Quick reminder:
 
-- реализуйте CRUD-эндпоинты `/{kind}` с фильтрами `updatedSince`, `afterId`, `limit`, `includeDeleted`;
-- держите `updatedAt` и (опционально) `deletedAt`, выставляя системные поля на сервере;
-- при PUT проверяйте `_baseUpdatedAt`, возвращайте `409` с текущими данными и поддерживайте `X-Force-Update` + `X-Idempotency-Key`;
-- отдавайте списки в формате `{ "items": [...], "nextPageToken": "..." }`, строя курсор по `(updatedAt, id)`;
-- ориентируйтесь на e2e-пример в `packages/offline_first_sync_drift_rest/test/e2e`, если нужна референсная реализация.
+- implement CRUD endpoints `/{kind}` with filters `updatedSince`, `afterId`, `limit`, `includeDeleted`;
+- keep `updatedAt` and (optionally) `deletedAt`, setting system fields on the server;
+- on PUT, validate `_baseUpdatedAt`, return `409` with current data, and support `X-Force-Update` + `X-Idempotency-Key`;
+- return lists as `{ "items": [...], "nextPageToken": "..." }`, building the cursor from `(updatedAt, id)`;
+- refer to the e2e example in `packages/offline_first_sync_drift_rest/test/e2e` for a reference implementation.
 
 ---
 
 ## CI/CD
 
-GitHub Actions пайплайн `.github/workflows/ci.yml` гоняет `dart analyze` и тесты для всех пакетов воркспейса (`packages/offline_first_sync_drift`, `packages/offline_first_sync_drift_rest`, `example`) на каждом push и pull request в ветки `main`/`master`. Локально можно повторить те же проверки командами:
+The GitHub Actions pipeline `.github/workflows/ci.yml` runs `dart analyze` and tests for all workspace packages (`packages/offline_first_sync_drift`, `packages/offline_first_sync_drift_rest`, `example`) on every push and pull request to `main`/`master`. Locally you can mirror the same checks with:
 
 ```bash
 dart pub get
