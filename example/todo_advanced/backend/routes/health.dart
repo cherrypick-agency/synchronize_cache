@@ -1,0 +1,10 @@
+import 'dart:convert';
+
+import 'package:dart_frog/dart_frog.dart';
+
+Response onRequest(RequestContext context) {
+  return Response(
+    body: jsonEncode({'status': 'ok'}),
+    headers: {'Content-Type': 'application/json'},
+  );
+}

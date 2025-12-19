@@ -8,5 +8,9 @@ workspace:
   - packages/offline_first_sync_drift
   - packages/offline_first_sync_drift_rest
   - example
+  - example/todo_simple/backend
+  - example/todo_simple/frontend
+  - example/todo_advanced/backend
+  - example/todo_advanced/frontend
 dev_dependencies:
   lints: ^6.0.0

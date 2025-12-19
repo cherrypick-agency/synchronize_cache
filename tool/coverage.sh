@@ -43,11 +43,13 @@ new_badge="![coverage](https://img.shields.io/badge/coverage-${percent}%25-${col
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     sed -i '' "s|^!\[coverage\].*|$new_badge|" README.md
+    sed -i '' "s|^!\[coverage\].*|$new_badge|" README.ru.md
 else
     sed -i "s|^!\[coverage\].*|$new_badge|" README.md
+    sed -i "s|^!\[coverage\].*|$new_badge|" README.ru.md
 fi
 
-echo "✅ README.md updated with coverage: $percent%"
+echo "✅ README.md and README.ru.md updated with coverage: $percent%"
 
 if ! command -v genhtml &> /dev/null; then
     echo "⚠️  'genhtml' is not installed. Skipping HTML report generation."

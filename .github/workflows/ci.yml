@@ -44,6 +44,45 @@ jobs:
           mv coverage/lcov-filtered.info coverage/lcov.info
         working-directory: packages/offline_first_sync_drift
 
+      - name: Update coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          LCOV_INFO="packages/offline_first_sync_drift/coverage/lcov.info"
+
+          total_lines=$(grep -o "LF:[0-9]*" "$LCOV_INFO" | cut -d: -f2 | awk '{s+=$1} END {print s}')
+          covered_lines=$(grep -o "LH:[0-9]*" "$LCOV_INFO" | cut -d: -f2 | awk '{s+=$1} END {print s}')
+
+          if [ -z "$total_lines" ] || [ "$total_lines" -eq 0 ]; then
+            percent=0
+          else
+            percent=$(awk "BEGIN {printf \"%.1f\", $covered_lines * 100 / $total_lines}")
+          fi
+
+          echo "Coverage: $percent%"
+
+          if (( $(echo "$percent < 50" | bc -l) )); then
+            color="red"
+          elif (( $(echo "$percent < 80" | bc -l) )); then
+            color="yellow"
+          else
+            color="brightgreen"
+          fi
+
+          new_badge="![coverage](https://img.shields.io/badge/coverage-${percent}%25-${color})"
+          sed -i "s|^!\[coverage\].*|$new_badge|" README.md
+          sed -i "s|^!\[coverage\].*|$new_badge|" README.ru.md
+
+          echo "COVERAGE_PERCENT=$percent" >> $GITHUB_ENV
+
+      - name: Commit coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md README.ru.md
+          git diff --staged --quiet || git commit -m "chore: update coverage badge to ${{ env.COVERAGE_PERCENT }}%"
+          git push
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

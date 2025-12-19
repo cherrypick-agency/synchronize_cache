@@ -1,0 +1,33 @@
+name: todo_advanced_frontend
+description: Advanced TODO app demonstrating offline_first_sync_drift with conflict resolution
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  drift: ^2.27.0
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.41
+  path_provider: ^2.1.5
+  offline_first_sync_drift:
+    path: ../../../packages/offline_first_sync_drift
+  offline_first_sync_drift_rest:
+    path: ../../../packages/offline_first_sync_drift_rest
+  json_annotation: ^4.9.0
+  uuid: ^4.5.2
+  provider: ^6.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  drift_dev: ^2.27.0
+  build_runner: ^2.4.15
+  json_serializable: ^6.9.4
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
