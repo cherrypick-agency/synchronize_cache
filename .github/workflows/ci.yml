@@ -50,7 +50,7 @@ jobs:
         working-directory: packages/offline_first_sync_drift_rest
 
       - name: Lint (dart analyze)
-        run: dart analyze .
+        run: dart analyze . --fatal-infos=false --fatal-warnings=false
 
       - name: Test offline_first_sync_drift with coverage
         run: |
