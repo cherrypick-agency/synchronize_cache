@@ -29,6 +29,22 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
         working-directory: example
 
+      - name: Generate code (todo_simple/frontend)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: example/todo_simple/frontend
+
+      - name: Generate code (todo_simple/backend)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: example/todo_simple/backend
+
+      - name: Generate code (todo_advanced/frontend)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: example/todo_advanced/frontend
+
+      - name: Generate code (todo_advanced/backend)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: example/todo_advanced/backend
+
       - name: Generate code (offline_first_sync_drift_rest)
         run: dart run build_runner build --delete-conflicting-outputs
         working-directory: packages/offline_first_sync_drift_rest
