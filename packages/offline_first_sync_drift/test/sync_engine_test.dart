@@ -455,6 +455,127 @@ void main() {
 
       engine.dispose();
     });
+
+    test('push emits OperationFailedEvent on PushError', () async {
+      // Transport that returns error once, then success
+      final transport = _ErrorOnceTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.enqueue(UpsertOp(
+        opId: 'op-error-1',
+        kind: 'test_item',
+        id: 'item-1',
+        localTimestamp: DateTime.now().toUtc(),
+        payloadJson: {'id': 'item-1', 'name': 'Test'},
+      ));
+
+      final events = <SyncEvent>[];
+      final sub = engine.events.listen(events.add);
+
+      await engine.sync();
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await sub.cancel();
+
+      final failedEvents = events.whereType<OperationFailedEvent>().toList();
+      expect(failedEvents.length, 1);
+      expect(failedEvents.first.opId, 'op-error-1');
+      expect(failedEvents.first.kind, 'test_item');
+      expect(failedEvents.first.entityId, 'item-1');
+      expect(failedEvents.first.willRetry, true);
+
+      engine.dispose();
+    });
+
+    test('skipConflictingOps removes unresolved conflicts from outbox', () async {
+      final transport = ErrorPushTransport(
+        serverData: {'id': 'item-1', 'name': 'Server'},
+        serverTimestamp: DateTime.now().toUtc(),
+      );
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+        config: const SyncConfig(
+          // With manual strategy and no resolver, conflicts won't be resolved
+          conflictStrategy: ConflictStrategy.manual,
+          skipConflictingOps: true,
+        ),
+      );
+
+      await db.enqueue(UpsertOp(
+        opId: 'op-conflict-1',
+        kind: 'test_item',
+        id: 'item-1',
+        localTimestamp: DateTime.now().toUtc(),
+        payloadJson: {'id': 'item-1', 'name': 'Local'},
+      ));
+
+      await engine.sync();
+
+      // Verify outbox is empty (skipConflictingOps removed the unresolved conflict)
+      final remainingOps = await db.takeOutbox();
+      expect(remainingOps.length, 0);
+
+      engine.dispose();
+    });
+
+    test('push throws MaxRetriesExceededException after retries exhausted', () async {
+      // Create a transport that throws during push (not PushError, but actual exception)
+      final transport = _ExceptionThrowingPushTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+        config: const SyncConfig(
+          maxPushRetries: 1,
+          backoffMin: Duration.zero,
+        ),
+      );
+
+      await db.enqueue(UpsertOp(
+        opId: 'op-throw-1',
+        kind: 'test_item',
+        id: 'item-1',
+        localTimestamp: DateTime.now().toUtc(),
+        payloadJson: {'id': 'item-1', 'name': 'Test'},
+      ));
+
+      await expectLater(
+        engine.sync(),
+        throwsA(isA<MaxRetriesExceededException>()),
+      );
+
+      engine.dispose();
+    });
   });
 
   group('Retry logic', () {
@@ -2504,6 +2625,76 @@ class ErrorPushTransport implements TransportAdapter {
   @override
   Future<PushResult> forcePush(Op op) async =>
       PushError(Exception('Force push failed'));
+
+  @override
+  Future<FetchResult> fetch({required String kind, required String id}) async =>
+      const FetchNotFound();
+
+  @override
+  Future<bool> health() async => true;
+}
+
+/// Transport that returns PushError on first call, then PushSuccess.
+class _ErrorOnceTransport implements TransportAdapter {
+  int _pushCallCount = 0;
+
+  @override
+  Future<BatchPushResult> push(List<Op> ops) async {
+    _pushCallCount++;
+    return BatchPushResult(
+      results: ops
+          .map((op) => OpPushResult(
+                opId: op.opId,
+                result: _pushCallCount == 1
+                    ? PushError(Exception('Temporary error'))
+                    : const PushSuccess(),
+              ))
+          .toList(),
+    );
+  }
+
+  @override
+  Future<PullPage> pull({
+    required String kind,
+    required DateTime updatedSince,
+    required int pageSize,
+    String? pageToken,
+    String? afterId,
+    bool includeDeleted = true,
+  }) async =>
+      PullPage(items: []);
+
+  @override
+  Future<PushResult> forcePush(Op op) async => const PushSuccess();
+
+  @override
+  Future<FetchResult> fetch({required String kind, required String id}) async =>
+      const FetchNotFound();
+
+  @override
+  Future<bool> health() async => true;
+}
+
+/// Transport that throws exception during push (for testing exception wrapping).
+class _ExceptionThrowingPushTransport implements TransportAdapter {
+  @override
+  Future<BatchPushResult> push(List<Op> ops) async {
+    throw Exception('Network connection failed');
+  }
+
+  @override
+  Future<PullPage> pull({
+    required String kind,
+    required DateTime updatedSince,
+    required int pageSize,
+    String? pageToken,
+    String? afterId,
+    bool includeDeleted = true,
+  }) async =>
+      PullPage(items: []);
+
+  @override
+  Future<PushResult> forcePush(Op op) async => const PushSuccess();
 
   @override
   Future<FetchResult> fetch({required String kind, required String id}) async =>

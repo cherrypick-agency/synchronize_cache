@@ -1,6 +1,11 @@
 import 'package:offline_first_sync_drift/src/conflict_resolution.dart';
 
-/// Конфигурация синхронизации.
+/// Synchronization configuration.
+///
+/// Configures all aspects of the sync engine behavior including:
+/// - Pagination and retry logic
+/// - Conflict resolution strategies
+/// - Background sync intervals
 class SyncConfig {
   const SyncConfig({
     this.pageSize = 500,
@@ -21,61 +26,61 @@ class SyncConfig {
     this.skipConflictingOps = false,
   });
 
-  /// Размер страницы при pull.
+  /// Page size for pull operations.
   final int pageSize;
 
-  /// Минимальная задержка при retry.
+  /// Minimum delay for retry backoff.
   final Duration backoffMin;
 
-  /// Максимальная задержка при retry.
+  /// Maximum delay for retry backoff.
   final Duration backoffMax;
 
-  /// Множитель для exponential backoff.
+  /// Multiplier for exponential backoff.
   final double backoffMultiplier;
 
-  /// Максимальное количество попыток отправки push.
+  /// Maximum number of push retry attempts.
   final int maxPushRetries;
 
-  /// Интервал полной ресинхронизации.
+  /// Interval for full resynchronization.
   final Duration fullResyncInterval;
 
-  /// Выполнять pull при старте.
+  /// Whether to pull on startup.
   final bool pullOnStartup;
 
-  /// Отправлять изменения сразу.
+  /// Whether to push changes immediately.
   final bool pushImmediately;
 
-  /// Интервал сверки данных.
+  /// Interval for data reconciliation.
   final Duration? reconcileInterval;
 
-  /// Ленивая сверка при промахе.
+  /// Enable lazy reconciliation on cache miss.
   final bool lazyReconcileOnMiss;
 
-  /// Стратегия разрешения конфликтов по умолчанию.
-  /// По умолчанию [ConflictStrategy.autoPreserve] — автоматическое слияние без потери данных.
+  /// Default conflict resolution strategy.
+  /// Defaults to [ConflictStrategy.autoPreserve] — automatic merge without data loss.
   final ConflictStrategy conflictStrategy;
 
-  /// Callback для ручного разрешения конфликтов.
-  /// Используется когда [conflictStrategy] == [ConflictStrategy.manual].
+  /// Callback for manual conflict resolution.
+  /// Used when [conflictStrategy] == [ConflictStrategy.manual].
   final ConflictResolver? conflictResolver;
 
-  /// Функция слияния данных.
-  /// Используется когда [conflictStrategy] == [ConflictStrategy.merge].
-  /// Если не указана, используется [ConflictUtils.defaultMerge].
+  /// Data merge function.
+  /// Used when [conflictStrategy] == [ConflictStrategy.merge].
+  /// If not specified, [ConflictUtils.defaultMerge] is used.
   final MergeFunction? mergeFunction;
 
-  /// Максимальное количество попыток разрешения конфликта.
+  /// Maximum number of conflict resolution attempts.
   final int maxConflictRetries;
 
-  /// Задержка между попытками разрешения конфликта.
+  /// Delay between conflict resolution attempts.
   final Duration conflictRetryDelay;
 
-  /// Пропускать операции с неразрешёнными конфликтами.
-  /// Если true, операция удаляется из outbox.
-  /// Если false, операция остаётся в outbox для следующей синхронизации.
+  /// Skip operations with unresolved conflicts.
+  /// If true, operation is removed from outbox.
+  /// If false, operation remains in outbox for next sync.
   final bool skipConflictingOps;
 
-  /// Создать копию конфигурации с изменёнными параметрами.
+  /// Create a copy of configuration with modified parameters.
   SyncConfig copyWith({
     int? pageSize,
     Duration? backoffMin,
@@ -113,8 +118,8 @@ class SyncConfig {
   );
 }
 
-/// Конфигурация конфликтов для конкретной таблицы.
-/// Позволяет переопределить стратегию для отдельных типов сущностей.
+/// Conflict configuration for a specific table.
+/// Allows overriding strategy for individual entity types.
 class TableConflictConfig {
   const TableConflictConfig({
     this.strategy,
@@ -123,15 +128,15 @@ class TableConflictConfig {
     this.timestampField = 'updatedAt',
   });
 
-  /// Стратегия для этой таблицы. Если null, используется глобальная.
+  /// Strategy for this table. If null, uses global strategy.
   final ConflictStrategy? strategy;
 
-  /// Callback для этой таблицы. Если null, используется глобальный.
+  /// Resolver callback for this table. If null, uses global resolver.
   final ConflictResolver? resolver;
 
-  /// Функция слияния для этой таблицы.
+  /// Merge function for this table.
   final MergeFunction? mergeFunction;
 
-  /// Поле с timestamp для стратегии lastWriteWins.
+  /// Timestamp field name for lastWriteWins strategy.
   final String timestampField;
 }

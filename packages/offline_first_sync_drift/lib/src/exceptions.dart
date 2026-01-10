@@ -1,16 +1,19 @@
-// Кастомные исключения для синхронизации.
+// Custom exceptions for synchronization.
 
-/// Базовое исключение синхронизации.
+/// Base sync exception.
+///
+/// All sync-related exceptions extend this sealed class.
+/// Use pattern matching to handle specific exception types.
 sealed class SyncException implements Exception {
   const SyncException(this.message, [this.cause, this.stackTrace]);
 
-  /// Описание ошибки.
+  /// Error description.
   final String message;
 
-  /// Причина ошибки (оригинальное исключение).
+  /// Original cause of the error.
   final Object? cause;
 
-  /// Stack trace оригинальной ошибки.
+  /// Stack trace of the original error.
   final StackTrace? stackTrace;
 
   @override
@@ -20,16 +23,16 @@ sealed class SyncException implements Exception {
           : '$runtimeType: $message\nCaused by: $cause';
 }
 
-/// Ошибка сети (недоступность сервера, таймаут).
+/// Network error (server unavailable, timeout, etc.).
 class NetworkException extends SyncException {
   const NetworkException(super.message, [super.cause, super.stackTrace]);
 
-  /// Создать из сетевой ошибки.
+  /// Create from network error.
   factory NetworkException.fromError(Object error, [StackTrace? stackTrace]) =>
       NetworkException('Network request failed: $error', error, stackTrace);
 }
 
-/// Ошибка транспорта (неожиданный ответ сервера).
+/// Transport error (unexpected server response).
 class TransportException extends SyncException {
   const TransportException(
     String message, {
@@ -39,13 +42,13 @@ class TransportException extends SyncException {
     StackTrace? stackTrace,
   }) : super(message, cause, stackTrace);
 
-  /// HTTP статус код.
+  /// HTTP status code.
   final int? statusCode;
 
-  /// Тело ответа.
+  /// Response body.
   final String? responseBody;
 
-  /// Создать для неуспешного HTTP ответа.
+  /// Create for unsuccessful HTTP response.
   factory TransportException.httpError(int statusCode, [String? body]) =>
       TransportException(
         'HTTP error $statusCode',
@@ -60,16 +63,16 @@ class TransportException extends SyncException {
           : 'TransportException: $message (status: $statusCode)';
 }
 
-/// Ошибка базы данных.
+/// Database error.
 class DatabaseException extends SyncException {
   const DatabaseException(super.message, [super.cause, super.stackTrace]);
 
-  /// Создать из ошибки БД.
+  /// Create from database error.
   factory DatabaseException.fromError(Object error, [StackTrace? stackTrace]) =>
       DatabaseException('Database operation failed: $error', error, stackTrace);
 }
 
-/// Неразрешённый конфликт данных.
+/// Unresolved data conflict.
 class ConflictException extends SyncException {
   const ConflictException(
     String message, {
@@ -81,23 +84,23 @@ class ConflictException extends SyncException {
     StackTrace? stackTrace,
   }) : super(message, cause, stackTrace);
 
-  /// Тип сущности.
+  /// Entity type.
   final String kind;
 
-  /// ID сущности.
+  /// Entity ID.
   final String entityId;
 
-  /// Локальные данные.
+  /// Local data.
   final Map<String, Object?>? localData;
 
-  /// Серверные данные.
+  /// Server data.
   final Map<String, Object?>? serverData;
 
   @override
   String toString() => 'ConflictException: $message ($kind/$entityId)';
 }
 
-/// Ошибка синхронизации (общая).
+/// Sync operation error (general).
 class SyncOperationException extends SyncException {
   const SyncOperationException(
     String message, {
@@ -107,10 +110,10 @@ class SyncOperationException extends SyncException {
     StackTrace? stackTrace,
   }) : super(message, cause, stackTrace);
 
-  /// Фаза синхронизации (push/pull).
+  /// Sync phase (push/pull).
   final String? phase;
 
-  /// ID операции.
+  /// Operation ID.
   final String? opId;
 
   @override
@@ -120,7 +123,7 @@ class SyncOperationException extends SyncException {
       '${opId == null ? '' : ' (opId: $opId)'}';
 }
 
-/// Превышено максимальное количество попыток.
+/// Maximum retry attempts exceeded.
 class MaxRetriesExceededException extends SyncException {
   const MaxRetriesExceededException(
     String message, {
@@ -130,10 +133,10 @@ class MaxRetriesExceededException extends SyncException {
     StackTrace? stackTrace,
   }) : super(message, cause, stackTrace);
 
-  /// Количество выполненных попыток.
+  /// Number of attempts made.
   final int attempts;
 
-  /// Максимальное количество попыток.
+  /// Maximum number of attempts allowed.
   final int maxRetries;
 
   @override
@@ -141,11 +144,11 @@ class MaxRetriesExceededException extends SyncException {
       'MaxRetriesExceededException: $message (attempts: $attempts/$maxRetries)';
 }
 
-/// Ошибка парсинга данных.
+/// Data parsing error.
 class ParseException extends SyncException {
   const ParseException(super.message, [super.cause, super.stackTrace]);
 
-  /// Создать из ошибки парсинга.
+  /// Create from parsing error.
   factory ParseException.fromError(Object error, [StackTrace? stackTrace]) =>
       ParseException('Failed to parse data: $error', error, stackTrace);
 }

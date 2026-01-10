@@ -13,7 +13,33 @@ import 'package:offline_first_sync_drift/src/sync_events.dart';
 import 'package:offline_first_sync_drift/src/syncable_table.dart';
 import 'package:offline_first_sync_drift/src/transport_adapter.dart';
 
-/// Движок синхронизации: push → pull с пагинацией и conflict resolution.
+/// Synchronization engine: push → pull with pagination and conflict resolution.
+///
+/// The core engine that orchestrates the sync process between local database
+/// and remote server. Handles:
+/// - Pushing local changes from outbox to server
+/// - Pulling remote changes with cursor-based pagination
+/// - Conflict resolution with multiple strategies
+/// - Automatic background sync
+///
+/// Example:
+/// ```dart
+/// final engine = SyncEngine(
+///   db: database,
+///   transport: RestTransport(baseUrl: 'https://api.example.com'),
+///   tables: [
+///     SyncableTable<Todo>(
+///       kind: 'todos',
+///       table: database.todos,
+///       fromJson: Todo.fromJson,
+///       toJson: (t) => t.toJson(),
+///       toInsertable: (t) => t.toInsertable(),
+///     ),
+///   ],
+/// );
+///
+/// await engine.sync();
+/// ```
 class SyncEngine<DB extends GeneratedDatabase> {
   SyncEngine({
     required DB db,
@@ -80,37 +106,58 @@ class SyncEngine<DB extends GeneratedDatabase> {
     );
   }
 
-  /// Поток событий синхронизации.
+  /// Stream of sync events for monitoring progress and errors.
   Stream<SyncEvent> get events => _events.stream;
 
-  /// Сервис для работы с outbox.
+  /// Service for managing outbox operations.
   OutboxService get outbox => _outboxService;
 
-  /// Сервис для работы с курсорами.
+  /// Service for managing sync cursors.
   CursorService get cursors => _cursorService;
 
   Timer? _autoTimer;
-  bool _running = false;
 
-  /// Запустить автоматическую синхронизацию.
+  /// Current sync Future.
+  /// Allows concurrent callers to share the same Future instead of
+  /// silently returning empty stats.
+  Future<SyncStats>? _syncFuture;
+
+  /// Current full resync Future.
+  Future<SyncStats>? _fullResyncFuture;
+
+  /// Start automatic periodic synchronization.
+  ///
+  /// [interval] — time between sync attempts (default: 5 minutes).
   void startAuto({Duration interval = const Duration(minutes: 5)}) {
     stopAuto();
     _autoTimer = Timer.periodic(interval, (_) => sync());
   }
 
-  /// Остановить автоматическую синхронизацию.
+  /// Stop automatic synchronization.
   void stopAuto() {
     _autoTimer?.cancel();
     _autoTimer = null;
   }
 
-  /// Выполнить синхронизацию.
-  /// [kinds] — если указано, синхронизировать только эти типы.
-  Future<SyncStats> sync({Set<String>? kinds}) async {
-    if (_running) return const SyncStats();
-    _running = true;
-    final started = DateTime.now();
+  /// Perform synchronization.
+  ///
+  /// [kinds] — if specified, synchronize only these entity types.
+  ///
+  /// If a sync is already in progress, concurrent callers will receive
+  /// the same Future and share the result, avoiding duplicate operations.
+  Future<SyncStats> sync({Set<String>? kinds}) {
+    // If sync is already running, share the existing Future
+    if (_syncFuture != null) {
+      return _syncFuture!;
+    }
 
+    _syncFuture = _doSync(kinds: kinds);
+    return _syncFuture!.whenComplete(() => _syncFuture = null);
+  }
+
+  /// Internal sync implementation.
+  Future<SyncStats> _doSync({Set<String>? kinds}) async {
+    final started = DateTime.now();
     var stats = const SyncStats();
 
     try {
@@ -161,30 +208,29 @@ class SyncEngine<DB extends GeneratedDatabase> {
       );
       _events.add(SyncErrorEvent(SyncPhase.pull, exception, st));
       throw exception;
-    } finally {
-      _running = false;
     }
   }
 
-  /// Выполнить полную ресинхронизацию.
+  /// Perform a full resynchronization.
   ///
-  /// [clearData] — очистить локальные данные перед pull.
-  /// По умолчанию false — данные остаются, курсоры сбрасываются,
-  /// затем pull накатывает данные поверх (insertOrReplace).
-  Future<SyncStats> fullResync({bool clearData = false}) async {
-    if (_running) return const SyncStats();
-    _running = true;
-    final started = DateTime.now();
-
-    try {
-      return _doFullResync(
-        reason: FullResyncReason.manual,
-        clearData: clearData,
-        started: started,
-      );
-    } finally {
-      _running = false;
+  /// [clearData] — if true, clears local data before pull.
+  /// Default is false — data remains, cursors are reset,
+  /// then pull applies data on top (insertOrReplace).
+  ///
+  /// If a full resync is already in progress, concurrent callers will
+  /// receive the same Future and share the result.
+  Future<SyncStats> fullResync({bool clearData = false}) {
+    // If full resync is already running, share the existing Future
+    if (_fullResyncFuture != null) {
+      return _fullResyncFuture!;
     }
+
+    _fullResyncFuture = _doFullResync(
+      reason: FullResyncReason.manual,
+      clearData: clearData,
+      started: DateTime.now(),
+    );
+    return _fullResyncFuture!.whenComplete(() => _fullResyncFuture = null);
   }
 
   Future<SyncStats> _doFullResync({
@@ -244,7 +290,10 @@ class SyncEngine<DB extends GeneratedDatabase> {
     }
   }
 
-  /// Освободить ресурсы.
+  /// Release resources.
+  ///
+  /// IMPORTANT: Always call this method when done using the engine
+  /// to prevent memory leaks from the event stream controller.
   void dispose() {
     stopAuto();
     _events.close();
