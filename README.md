@@ -7,9 +7,74 @@ Dart/Flutter library for offline-first data handling. Local cache on Drift + ser
 
 **Principle:** read locally → write locally + to outbox → `sync()` pushes and pulls data.
 
+## Why this library?
+
+Quick comparison with popular alternatives:
+
+**vs PowerSync** ($49+/mo):
+- Free, no vendor lock-in
+- Field-level merge (LWW loses concurrent edits)
+- Any backend, not just Postgres/MongoDB
+
+**vs Brick** (free):
+- Drift ORM vs custom DSL
+- 5 conflict strategies vs LWW only
+- Better documentation
+
+**vs Firebase**:
+- Truly offline-first (Firebase has issues: 8+ min offline query delays, transactions don't persist across app restarts, need to be online to generate document IDs)
+- No vendor lock-in
+- Field-level merge vs LWW only
+
+The "complexity" is ~50 lines of explicit config. You get:
+- `changedFields` tracking (concurrent edits preserved)
+- Per-table conflict strategies
+- Any backend via TransportAdapter
+
+**Trade-off:** More setup, but full control + $600/year saved vs PowerSync.
+
+Built on Drift (best Flutter ORM) + Outbox pattern (used by Shopify, Uber).
+
+### Detailed comparison
+
+| Feature | This library | PowerSync | Brick | Firebase |
+|---------|--------------|-----------|-------|----------|
+| **Offline read/write** | Yes | Yes | Yes | Partial (delays, issues) |
+| **Conflict resolution** | 5 strategies | LWW only | LWW only | LWW only |
+| **Field-level merge** | Yes (`changedFields`) | No | No | No |
+| **Per-table config** | Yes | No | No | No |
+| **ORM** | Drift (type-safe) | Optional Drift | Custom DSL | No |
+| **Any backend** | Yes (TransportAdapter) | Postgres/MongoDB/MySQL | REST/GraphQL/Supabase | Firebase only |
+| **Web support** | Yes | Beta | Yes | Yes |
+| **Self-hosted** | Yes | Yes | Yes | No |
+| **Price** | Free | $49+/mo | Free | Pay-per-use |
+| **Vendor lock-in** | None | Medium | Low | High |
+
+### Advantages
+
+- **Field-level merge** — if User A edits `title` and User B edits `description`, both changes are preserved (others lose one with LWW)
+- **5 conflict strategies** — `autoPreserve`, `serverWins`, `clientWins`, `lastWriteWins`, `manual`
+- **Per-table configuration** — different strategies for different data types
+- **Any backend** — REST, GraphQL, gRPC, WebSocket via `TransportAdapter`
+- **Drift ORM** — type-safe, reactive, actively maintained
+- **Outbox pattern** — battle-tested, used by Shopify, Uber, Stripe
+- **Free & open source** — MIT license, no vendor lock-in
+
+### Disadvantages
+
+| vs | Trade-off |
+|----|-----------|
+| PowerSync | More initial setup (~50 lines vs plug-and-play) |
+| sql_crdt | Not true CRDT (requires server, no P2P) |
+| Firebase | No managed infrastructure (you run your own backend) |
+| All | Newer project, smaller community |
+
+---
+
 ## Table of contents
 
 - [Offline-first Cache Sync](#offline-first-cache-sync)
+  - [Why this library?](#why-this-library)
   - [Table of contents](#table-of-contents)
   - [Quick start](#quick-start)
     - [1. Installation](#1-installation)

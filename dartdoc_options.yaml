@@ -1,0 +1,16 @@
+dartdoc:
+  format: vitepress
+  output: docs-site
+  workspaceDocs: true
+  excludePackages:
+    - example
+    - todo_simple_backend
+    - todo_simple_frontend
+    - todo_advanced_backend
+    - todo_advanced_frontend
+  guide:
+    dirs:
+      - docs
+  linkToSource:
+    root: '.'
+    uriTemplate: 'https://github.com/cherrypick-agency/synchronize_cache/blob/main/%f%#L%l%'

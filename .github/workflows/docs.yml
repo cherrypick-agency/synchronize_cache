@@ -1,0 +1,102 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install workspace dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: |
+          for dir in \
+            example \
+            example/todo_simple/frontend \
+            example/todo_simple/backend \
+            example/todo_advanced/frontend \
+            example/todo_advanced/backend \
+            packages/offline_first_sync_drift_rest; do
+            if [ -d "$dir" ]; then
+              echo "Running build_runner in $dir..."
+              cd "$dir"
+              dart run build_runner build --delete-conflicting-outputs
+              cd "$GITHUB_WORKSPACE"
+            else
+              echo "Skipping $dir (not found)"
+            fi
+          done
+
+      - name: Install dartdoc_vitepress
+        run: dart pub global activate --source git https://github.com/777genius/dartdoc_vitepress.git
+
+      - name: Generate API documentation
+        run: |
+          dart pub global run dartdoc_vitepress \
+            --format vitepress \
+            --workspace-docs \
+            --output docs-site \
+            --exclude-packages 'example,todo_simple_backend,todo_simple_frontend,todo_advanced_backend,todo_advanced_frontend'
+
+      - name: Copy guide files
+        run: |
+          mkdir -p docs-site/guide
+          for f in docs/*.md; do
+            [ -f "$f" ] && cp "$f" docs-site/guide/
+          done
+
+      - name: Install npm dependencies
+        working-directory: docs-site
+        run: npm install
+
+      - name: Build VitePress site
+        working-directory: docs-site
+        run: npx vitepress build
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
