@@ -286,7 +286,7 @@ class DeleteOp extends Op {
 
 ---
 
-## SyncableTable<T> — Syncable Table Configuration
+## `SyncableTable<T>` — Syncable Table Configuration
 
 `SyncableTable<T>` is a configuration that links a Drift table
 to the server. Registered in `SyncEngine`.
