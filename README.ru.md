@@ -213,39 +213,39 @@ db.select(db.dailyFeelings).watch().listen((list) {
 Future<void> create(DailyFeeling feeling) async {
   await db.into(db.dailyFeelings).insert(feeling);
   
-  await db.enqueue(UpsertOp(
-    opId: uuid.v4(),
-    kind: 'daily_feeling',
-    id: feeling.id,
-    localTimestamp: DateTime.now().toUtc(),
-    payloadJson: feeling.toJson(),
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'daily_feeling',
+      id: feeling.id,
+      payloadJson: feeling.toJson(),
+    ),
+  );
 }
 
 Future<void> updateFeeling(DailyFeeling updated, Set<String> changedFields) async {
   await db.update(db.dailyFeelings).replace(updated);
   
-  await db.enqueue(UpsertOp(
-    opId: uuid.v4(),
-    kind: 'daily_feeling',
-    id: updated.id,
-    localTimestamp: DateTime.now().toUtc(),
-    payloadJson: updated.toJson(),
-    baseUpdatedAt: updated.updatedAt,
-    changedFields: changedFields,
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'daily_feeling',
+      id: updated.id,
+      payloadJson: updated.toJson(),
+      baseUpdatedAt: updated.updatedAt,
+      changedFields: changedFields,
+    ),
+  );
 }
 
 Future<void> deleteFeeling(String id, DateTime? serverUpdatedAt) async {
   await (db.delete(db.dailyFeelings)..where((t) => t.id.equals(id))).go();
   
-  await db.enqueue(DeleteOp(
-    opId: uuid.v4(),
-    kind: 'daily_feeling',
-    id: id,
-    localTimestamp: DateTime.now().toUtc(),
-    baseUpdatedAt: serverUpdatedAt,
-  ));
+  await db.enqueue(
+    DeleteOp.create(
+      kind: 'daily_feeling',
+      id: id,
+      baseUpdatedAt: serverUpdatedAt,
+    ),
+  );
 }
 ```
 

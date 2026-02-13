@@ -1,4 +1,6 @@
 /// Outbox операции: upsert/delete с idempotency через opId.
+import 'package:offline_first_sync_drift/src/op_id.dart';
+
 sealed class Op {
   Op({
     required this.opId,
@@ -31,6 +33,31 @@ class UpsertOp extends Op {
     this.baseUpdatedAt,
     this.changedFields,
   });
+
+  /// Factory helper for DX: generates [opId] and [localTimestamp] by default.
+  ///
+  /// This is a non-breaking convenience. You can still construct [UpsertOp]
+  /// directly to fully control all fields.
+  static UpsertOp create({
+    required String kind,
+    required String id,
+    required Map<String, Object?> payloadJson,
+    DateTime? baseUpdatedAt,
+    Set<String>? changedFields,
+    String? opId,
+    DateTime? localTimestamp,
+  }) {
+    final ts = (localTimestamp ?? DateTime.now()).toUtc();
+    return UpsertOp(
+      opId: opId ?? OpId.v4(),
+      kind: kind,
+      id: id,
+      localTimestamp: ts,
+      payloadJson: payloadJson,
+      baseUpdatedAt: baseUpdatedAt,
+      changedFields: changedFields,
+    );
+  }
 
   /// JSON payload для отправки на сервер.
   final Map<String, Object?> payloadJson;
@@ -76,6 +103,27 @@ class DeleteOp extends Op {
     required super.localTimestamp,
     this.baseUpdatedAt,
   });
+
+  /// Factory helper for DX: generates [opId] and [localTimestamp] by default.
+  ///
+  /// This is a non-breaking convenience. You can still construct [DeleteOp]
+  /// directly to fully control all fields.
+  static DeleteOp create({
+    required String kind,
+    required String id,
+    DateTime? baseUpdatedAt,
+    String? opId,
+    DateTime? localTimestamp,
+  }) {
+    final ts = (localTimestamp ?? DateTime.now()).toUtc();
+    return DeleteOp(
+      opId: opId ?? OpId.v4(),
+      kind: kind,
+      id: id,
+      localTimestamp: ts,
+      baseUpdatedAt: baseUpdatedAt,
+    );
+  }
 
   /// Timestamp когда данные были получены с сервера.
   final DateTime? baseUpdatedAt;

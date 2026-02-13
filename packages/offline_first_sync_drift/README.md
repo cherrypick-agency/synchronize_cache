@@ -101,13 +101,13 @@ final engine = SyncEngine(
 ```dart
 // Create
 await db.into(db.dailyFeelings).insert(feeling.toInsertable());
-await db.enqueue(UpsertOp(
-  opId: uuid.v4(),
-  kind: 'daily_feeling',
-  id: feeling.id,
-  localTimestamp: DateTime.now().toUtc(),
-  payloadJson: feeling.toJson(),
-));
+await db.enqueue(
+  UpsertOp.create(
+    kind: 'daily_feeling',
+    id: feeling.id,
+    payloadJson: feeling.toJson(),
+  ),
+);
 
 // Sync
 final stats = await engine.sync();

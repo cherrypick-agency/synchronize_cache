@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:todo_advanced_frontend/database/database.dart';
 import 'package:todo_advanced_frontend/models/todo.dart';
 import 'package:todo_advanced_frontend/repositories/todo_repository.dart';
+import 'package:todo_advanced_frontend/sync/todo_sync.dart';
 
 import '../helpers/test_database.dart';
 
@@ -11,7 +12,7 @@ void main() {
 
   setUp(() async {
     db = createTestDatabase();
-    repo = TodoRepository(db);
+    repo = TodoRepository(db, todoSyncTable(db));
   });
 
   tearDown(() async {

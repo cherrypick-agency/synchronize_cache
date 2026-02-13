@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:offline_first_sync_drift/src/constants.dart';
 
 /// Конфигурация синхронизируемой таблицы.
 /// Регистрируется в SyncEngine для автоматической синхронизации.
@@ -44,5 +45,45 @@ class SyncableTable<T> {
     }
     // Fallback: assume entity implements Insertable<T>
     return entity as Insertable<T>;
+  }
+
+  /// Получить ID сущности.
+  ///
+  /// Prefer providing [getId] for best performance and correctness.
+  /// Fallback: derives id from [toJson] using [SyncFields.idFields].
+  String idOf(T entity) {
+    if (getId != null) return getId!(entity);
+    final json = toJson(entity);
+    for (final key in SyncFields.idFields) {
+      final value = json[key];
+      if (value != null && value.toString().isNotEmpty) {
+        return value.toString();
+      }
+    }
+    throw StateError(
+      'Cannot determine entity id for kind "$kind". '
+      'Provide getId: (e) => e.id (recommended).',
+    );
+  }
+
+  /// Получить updatedAt сущности.
+  ///
+  /// Prefer providing [getUpdatedAt] for best performance and correctness.
+  /// Fallback: derives timestamp from [toJson] using [SyncFields.updatedAtFields].
+  DateTime updatedAtOf(T entity) {
+    if (getUpdatedAt != null) return getUpdatedAt!(entity);
+    final json = toJson(entity);
+    for (final key in SyncFields.updatedAtFields) {
+      final value = json[key];
+      if (value is DateTime) return value.toUtc();
+      if (value != null) {
+        final parsed = DateTime.tryParse(value.toString());
+        if (parsed != null) return parsed.toUtc();
+      }
+    }
+    throw StateError(
+      'Cannot determine entity updatedAt for kind "$kind". '
+      'Provide getUpdatedAt: (e) => e.updatedAt (recommended).',
+    );
   }
 }

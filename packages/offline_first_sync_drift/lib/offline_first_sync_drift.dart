@@ -18,6 +18,10 @@ export 'src/conflict_resolution.dart';
 export 'src/sync_events.dart';
 export 'src/syncable_table.dart';
 export 'src/transport_adapter.dart';
+export 'src/changed_fields.dart';
+export 'src/sync_writer.dart';
+export 'src/sync_database_dx.dart';
+export 'src/sync_repository.dart';
 
 // Services
 export 'src/services/outbox_service.dart';

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:todo_simple_frontend/database/database.dart';
 import 'package:todo_simple_frontend/repositories/todo_repository.dart';
 import 'package:todo_simple_frontend/services/sync_service.dart';
+import 'package:todo_simple_frontend/sync/todo_sync.dart';
 import 'package:todo_simple_frontend/ui/screens/todo_list_screen.dart';
 
 // ============================================================================
@@ -101,13 +102,15 @@ void main() {
     setUp(() {
       // Fresh in-memory database for each test
       db = AppDatabase(NativeDatabase.memory());
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
 
       // SyncService with INVALID URL - simulates network unavailability
       // Port 99999 is invalid, guaranteeing immediate connection failure
       syncService = SyncService(
         db: db,
         baseUrl: 'http://localhost:99999', // <-- Always fails
+        todoSync: todoSync,
         maxRetries: 0, // <-- Fail fast, don't waste time on retries
       );
     });

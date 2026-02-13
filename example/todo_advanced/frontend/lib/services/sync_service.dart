@@ -9,6 +9,8 @@ import 'package:offline_first_sync_drift_rest/offline_first_sync_drift_rest.dart
 import '../database/database.dart';
 import '../models/todo.dart';
 import 'conflict_handler.dart';
+// ignore: unused_import
+import '../sync/todo_sync.dart';
 
 /// Extracts user-friendly error message from exception.
 String _sanitizeError(Object error) {
@@ -42,6 +44,7 @@ class SyncService extends ChangeNotifier {
     required AppDatabase db,
     required String baseUrl,
     required ConflictHandler conflictHandler,
+    required SyncableTable<Todo> todoSync,
     int maxRetries = 5,
     int maxPushRetries = 5,
   })  : _db = db,
@@ -56,15 +59,7 @@ class SyncService extends ChangeNotifier {
     _engine = SyncEngine(
       db: db,
       transport: _transport,
-      tables: [
-        SyncableTable<Todo>(
-          kind: 'todos',
-          table: db.todos,
-          fromJson: Todo.fromJson,
-          toJson: (t) => t.toJson(),
-          toInsertable: (t) => t.toInsertable(),
-        ),
-      ],
+      tables: [todoSync],
       config: SyncConfig(
         // Use manual strategy for conflict resolution UI
         conflictStrategy: ConflictStrategy.manual,

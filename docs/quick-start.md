@@ -181,17 +181,18 @@ await db.into(db.todos).insert(
   ),
 );
 
-await db.enqueue(UpsertOp(
-  opId: const Uuid().v4(),
-  kind: 'todos',
-  id: todoId,
-  localTimestamp: now,
-  payloadJson: {
-    'id': todoId,
-    'title': 'Buy milk',
-    'completed': false,
-  },
-));
+await db.enqueue(
+  UpsertOp.create(
+    kind: 'todos',
+    id: todoId,
+    localTimestamp: now,
+    payloadJson: {
+      'id': todoId,
+      'title': 'Buy milk',
+      'completed': false,
+    },
+  ),
+);
 ```
 
 ### Updating
@@ -208,19 +209,20 @@ await (db.update(db.todos)..where((t) => t.id.equals(todoId))).write(
   ),
 );
 
-await db.enqueue(UpsertOp(
-  opId: const Uuid().v4(),
-  kind: 'todos',
-  id: todoId,
-  localTimestamp: now,
-  payloadJson: {
-    'id': todoId,
-    'title': 'Buy oat milk',
-    'completed': false,
-  },
-  baseUpdatedAt: todo.updatedAt,
-  changedFields: {'title'},
-));
+await db.enqueue(
+  UpsertOp.create(
+    kind: 'todos',
+    id: todoId,
+    localTimestamp: now,
+    payloadJson: {
+      'id': todoId,
+      'title': 'Buy oat milk',
+      'completed': false,
+    },
+    baseUpdatedAt: todo.updatedAt,
+    changedFields: {'title'},
+  ),
+);
 ```
 
 `changedFields` -- the set of fields the user changed. Used during merge conflicts to avoid overwriting fields that were not modified.
@@ -228,16 +230,31 @@ await db.enqueue(UpsertOp(
 ### Deleting
 
 ```dart
-await db.enqueue(DeleteOp(
-  opId: const Uuid().v4(),
-  kind: 'todos',
-  id: todoId,
-  localTimestamp: DateTime.now().toUtc(),
-  baseUpdatedAt: todo.updatedAt,
-));
+await db.enqueue(
+  DeleteOp.create(
+    kind: 'todos',
+    id: todoId,
+    baseUpdatedAt: todo.updatedAt,
+  ),
+);
 ```
 
 Physical deletion from the local DB happens during pull -- the server returns a record with a populated `deletedAt`.
+
+### Less boilerplate (optional)
+
+If you already have a typed entity and a `SyncableTable<T>`, you can use the writer helpers:
+
+```dart
+final writer = db.syncWriter().forTable(todoSync);
+
+await writer.insertAndEnqueue(todo);
+await writer.replaceAndEnqueue(
+  updated,
+  baseUpdatedAt: todo.updatedAt,
+  changedFields: {'title'},
+);
+```
 
 ## Synchronization
 

@@ -5,6 +5,7 @@ import 'database/database.dart';
 import 'repositories/todo_repository.dart';
 import 'services/conflict_handler.dart';
 import 'services/sync_service.dart';
+import 'sync/todo_sync.dart';
 import 'ui/screens/todo_list_screen.dart';
 
 /// Backend server URL.
@@ -26,12 +27,14 @@ void main() async {
   final db = AppDatabase.open();
 
   // Create services
-  final todoRepo = TodoRepository(db);
+  final todoSync = todoSyncTable(db);
+  final todoRepo = TodoRepository(db, todoSync);
   final conflictHandler = ConflictHandler();
   final syncService = SyncService(
     db: db,
     baseUrl: kBackendUrl,
     conflictHandler: conflictHandler,
+    todoSync: todoSync,
   );
 
   runApp(

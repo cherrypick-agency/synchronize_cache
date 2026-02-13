@@ -8,6 +8,7 @@ import 'package:todo_advanced_frontend/database/database.dart';
 import 'package:todo_advanced_frontend/repositories/todo_repository.dart';
 import 'package:todo_advanced_frontend/services/conflict_handler.dart';
 import 'package:todo_advanced_frontend/services/sync_service.dart';
+import 'package:todo_advanced_frontend/sync/todo_sync.dart';
 import 'package:todo_advanced_frontend/ui/screens/todo_list_screen.dart';
 
 // ============================================================================
@@ -167,12 +168,14 @@ void main() {
       await http.post(Uri.parse('$baseUrl/reset'));
 
       db = AppDatabase(NativeDatabase.memory());
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       conflictHandler = ConflictHandler();
       syncService = SyncService(
         db: db,
         baseUrl: baseUrl,
         conflictHandler: conflictHandler,
+        todoSync: todoSync,
       );
     });
 

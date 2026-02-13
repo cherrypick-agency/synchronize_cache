@@ -12,6 +12,7 @@ import 'package:todo_advanced_frontend/database/database.dart';
 import 'package:todo_advanced_frontend/repositories/todo_repository.dart';
 import 'package:todo_advanced_frontend/services/conflict_handler.dart';
 import 'package:todo_advanced_frontend/services/sync_service.dart';
+import 'package:todo_advanced_frontend/sync/todo_sync.dart';
 
 import '../helpers/backend_server.dart';
 import '../helpers/test_database.dart';
@@ -72,12 +73,14 @@ void main() {
 
   setUp(() async {
     db = createTestDatabase();
-    repo = TodoRepository(db);
+    final todoSync = todoSyncTable(db);
+    repo = TodoRepository(db, todoSync);
     conflictHandler = ConflictHandler();
     syncService = SyncService(
       db: db,
       baseUrl: server.baseUrl.toString(),
       conflictHandler: conflictHandler,
+      todoSync: todoSync,
     );
   });
 
@@ -648,13 +651,15 @@ void main() {
       // Fresh client
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       final freshConflictHandler = ConflictHandler();
       syncService.dispose();
       syncService = SyncService(
         db: db,
         baseUrl: server.baseUrl.toString(),
         conflictHandler: freshConflictHandler,
+        todoSync: todoSync,
       );
 
       await syncService.sync();

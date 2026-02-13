@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:todo_simple_frontend/database/database.dart';
 import 'package:todo_simple_frontend/repositories/todo_repository.dart';
 import 'package:todo_simple_frontend/services/sync_service.dart';
+import 'package:todo_simple_frontend/sync/todo_sync.dart';
 
 import '../helpers/backend_server.dart';
 import '../helpers/test_database.dart';
@@ -46,10 +47,12 @@ void main() {
 
   setUp(() async {
     db = createTestDatabase();
-    repo = TodoRepository(db);
+    final todoSync = todoSyncTable(db);
+    repo = TodoRepository(db, todoSync);
     syncService = SyncService(
       db: db,
       baseUrl: server.baseUrl.toString(),
+      todoSync: todoSync,
     );
   });
 
@@ -98,11 +101,13 @@ void main() {
       // Create a new database instance (simulates fresh app start)
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       syncService.dispose();
       syncService = SyncService(
         db: db,
         baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
       );
 
       // Local database should be empty
@@ -384,9 +389,14 @@ void main() {
       // Verify round-trip back to client
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       syncService.dispose();
-      syncService = SyncService(db: db, baseUrl: server.baseUrl.toString());
+      syncService = SyncService(
+        db: db,
+        baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
+      );
 
       await syncService.sync();
 
@@ -409,9 +419,14 @@ void main() {
       // Pull back
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       syncService.dispose();
-      syncService = SyncService(db: db, baseUrl: server.baseUrl.toString());
+      syncService = SyncService(
+        db: db,
+        baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
+      );
 
       await syncService.sync();
 
@@ -459,9 +474,14 @@ void main() {
       // Simulate fresh client (new database)
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       syncService.dispose();
-      syncService = SyncService(db: db, baseUrl: server.baseUrl.toString());
+      syncService = SyncService(
+        db: db,
+        baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
+      );
 
       // Fresh database should be empty
       var todos = await repo.getAll();
@@ -501,9 +521,14 @@ void main() {
       // Fresh client to pull server changes (without local state)
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       syncService.dispose();
-      syncService = SyncService(db: db, baseUrl: server.baseUrl.toString());
+      syncService = SyncService(
+        db: db,
+        baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
+      );
 
       // Sync pulls server data
       await syncService.sync();
@@ -535,9 +560,14 @@ void main() {
       // Fresh client to see server's state
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       syncService.dispose();
-      syncService = SyncService(db: db, baseUrl: server.baseUrl.toString());
+      syncService = SyncService(
+        db: db,
+        baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
+      );
 
       // Sync pulls server data - deleted todos should not appear
       await syncService.sync();
@@ -584,9 +614,14 @@ void main() {
       // Fresh client
       await db.close();
       db = createTestDatabase();
-      repo = TodoRepository(db);
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
       syncService.dispose();
-      syncService = SyncService(db: db, baseUrl: server.baseUrl.toString());
+      syncService = SyncService(
+        db: db,
+        baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
+      );
 
       await syncService.sync();
 
@@ -633,8 +668,13 @@ void main() {
       syncService.dispose();
 
       db = createTestDatabase();
-      repo = TodoRepository(db);
-      syncService = SyncService(db: db, baseUrl: server.baseUrl.toString());
+      final todoSync = todoSyncTable(db);
+      repo = TodoRepository(db, todoSync);
+      syncService = SyncService(
+        db: db,
+        baseUrl: server.baseUrl.toString(),
+        todoSync: todoSync,
+      );
 
       // Local DB is empty after restart (in-memory)
       var todos = await repo.getAll();

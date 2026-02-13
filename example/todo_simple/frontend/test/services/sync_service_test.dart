@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:todo_simple_frontend/database/database.dart';
 import 'package:todo_simple_frontend/repositories/todo_repository.dart';
 import 'package:todo_simple_frontend/services/sync_service.dart';
+import 'package:todo_simple_frontend/sync/todo_sync.dart';
 
 import '../helpers/test_database.dart';
 
@@ -12,9 +13,13 @@ void main() {
 
   setUp(() async {
     db = createTestDatabase();
+    final todoSync = todoSyncTable(db);
     service = SyncService(
       db: db,
-      baseUrl: 'http://localhost:8080',
+      // Use invalid port to make tests deterministic (no dependency on a local server).
+      baseUrl: 'http://localhost:99999',
+      todoSync: todoSync,
+      maxRetries: 0,
     );
   });
 
@@ -122,6 +127,7 @@ void main() {
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999', // Invalid port
+          todoSync: todoSyncTable(offlineDb),
           maxRetries: 0, // No retries for fast test
         );
 
@@ -144,6 +150,7 @@ void main() {
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999',
+          todoSync: todoSyncTable(offlineDb),
           maxRetries: 0,
         );
 
@@ -163,12 +170,14 @@ void main() {
         // Test that operations created offline stay in outbox
         // (not lost without sync)
         final offlineDb = AppDatabase(NativeDatabase.memory());
+        final todoSync = todoSyncTable(offlineDb);
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999',
+          todoSync: todoSync,
           maxRetries: 0,
         );
-        final repo = TodoRepository(offlineDb);
+        final repo = TodoRepository(offlineDb, todoSync);
 
         // Create todos - they go to outbox
         await repo.create(title: 'Todo 1');
@@ -191,6 +200,7 @@ void main() {
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999',
+          todoSync: todoSyncTable(offlineDb),
           maxRetries: 0,
         );
 

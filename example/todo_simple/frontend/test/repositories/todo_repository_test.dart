@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:todo_simple_frontend/database/database.dart';
 import 'package:todo_simple_frontend/models/todo.dart';
 import 'package:todo_simple_frontend/repositories/todo_repository.dart';
+import 'package:todo_simple_frontend/sync/todo_sync.dart';
 
 import '../helpers/test_database.dart';
 
@@ -14,7 +15,7 @@ void main() {
 
   setUp(() {
     db = createTestDatabase();
-    repository = TodoRepository(db);
+    repository = TodoRepository(db, todoSyncTable(db));
   });
 
   tearDown(() async {

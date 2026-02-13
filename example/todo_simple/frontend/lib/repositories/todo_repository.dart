@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../database/database.dart';
 import '../models/todo.dart';
+import '../sync/todo_sync.dart';
 
 /// Repository for managing todos with offline-first sync support.
 ///
@@ -11,10 +12,13 @@ import '../models/todo.dart';
 /// 1. Update local database immediately
 /// 2. Enqueue operation for sync to server
 class TodoRepository {
-  TodoRepository(this._db);
+  TodoRepository(this._db, this._syncTable)
+      : _writer = SyncWriter<AppDatabase>(_db).forTable(_syncTable);
 
   final AppDatabase _db;
   final _uuid = const Uuid();
+  final SyncableTable<Todo> _syncTable;
+  final SyncEntityWriter<Todo, AppDatabase> _writer;
 
   /// Watches all non-deleted todos, ordered by priority and title.
   Stream<List<Todo>> watchAll() {
@@ -70,17 +74,7 @@ class TodoRepository {
       updatedAt: now,
     );
 
-    // Insert into local database
-    await _db.into(_db.todos).insert(todo.toInsertable());
-
-    // Enqueue for sync
-    await _db.enqueue(UpsertOp(
-      opId: _uuid.v4(),
-      kind: 'todos',
-      id: id,
-      localTimestamp: now,
-      payloadJson: todo.toJson(),
-    ));
+    await _writer.insertAndEnqueue(todo, localTimestamp: now);
 
     return todo;
   }
@@ -122,18 +116,12 @@ class TodoRepository {
     );
 
     // Update local database
-    await _db.update(_db.todos).replace(updated.toInsertable());
-
-    // Enqueue for sync with changed fields
-    await _db.enqueue(UpsertOp(
-      opId: _uuid.v4(),
-      kind: 'todos',
-      id: todo.id,
-      localTimestamp: now,
-      payloadJson: updated.toJson(),
-      baseUpdatedAt: todo.updatedAt, // For conflict detection
+    await _writer.replaceAndEnqueue(
+      updated,
+      baseUpdatedAt: todo.updatedAt,
       changedFields: changedFields.isNotEmpty ? changedFields : null,
-    ));
+      localTimestamp: now,
+    );
 
     return updated;
   }
@@ -149,16 +137,14 @@ class TodoRepository {
 
     // Soft delete locally
     final deleted = todo.copyWith(deletedAtLocal: now);
-    await _db.update(_db.todos).replace(deleted.toInsertable());
-
-    // Enqueue delete operation
-    await _db.enqueue(DeleteOp(
-      opId: _uuid.v4(),
-      kind: 'todos',
+    await _writer.writeAndEnqueueDelete(
+      localWrite: () async {
+        await _db.update(_db.todos).replace(deleted.toInsertable());
+      },
       id: todo.id,
-      localTimestamp: now,
       baseUpdatedAt: todo.updatedAt,
-    ));
+      localTimestamp: now,
+    );
   }
 
   /// Hard deletes all soft-deleted todos (cleanup after sync).
@@ -199,15 +185,7 @@ class TodoRepository {
     final now = DateTime.now().toUtc();
     final todoWithTime = todo.copyWith(updatedAt: now);
 
-    await _db.into(_db.todos).insert(todoWithTime.toInsertable());
-
-    await _db.enqueue(UpsertOp(
-      opId: _uuid.v4(),
-      kind: 'todos',
-      id: todo.id,
-      localTimestamp: now,
-      payloadJson: todoWithTime.toJson(),
-    ));
+    await _writer.insertAndEnqueue(todoWithTime, localTimestamp: now);
 
     return todoWithTime;
   }

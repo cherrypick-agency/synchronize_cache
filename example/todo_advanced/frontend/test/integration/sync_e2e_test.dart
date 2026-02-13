@@ -6,6 +6,8 @@ import 'package:todo_advanced_frontend/models/todo.dart';
 import 'package:todo_advanced_frontend/repositories/todo_repository.dart';
 import 'package:todo_advanced_frontend/services/conflict_handler.dart';
 import 'package:todo_advanced_frontend/services/sync_service.dart';
+import 'package:todo_advanced_frontend/sync/todo_sync.dart';
+import 'package:todo_advanced_frontend/sync/todo_sync.dart';
 
 import '../helpers/test_database.dart';
 
@@ -26,12 +28,16 @@ void main() {
 
   setUp(() async {
     db = createTestDatabase();
-    repo = TodoRepository(db);
+    final todoSync = todoSyncTable(db);
+    repo = TodoRepository(db, todoSync);
     conflictHandler = ConflictHandler();
     syncService = SyncService(
       db: db,
-      baseUrl: 'http://localhost:8080',
+      // Use invalid port to make tests deterministic (no dependency on a local server).
+      baseUrl: 'http://localhost:99999',
       conflictHandler: conflictHandler,
+      todoSync: todoSync,
+      maxRetries: 0,
     );
   });
 
@@ -247,10 +253,12 @@ void main() {
         // Create SyncService with invalid URL and no retries for fast failure
         final offlineDb = AppDatabase(NativeDatabase.memory());
         final offlineHandler = ConflictHandler();
+        final todoSync = todoSyncTable(offlineDb);
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999', // Invalid port
           conflictHandler: offlineHandler,
+          todoSync: todoSync,
           maxRetries: 0, // No retries for fast test
         );
 
@@ -272,10 +280,12 @@ void main() {
       test('error message is sanitized for network errors', () async {
         final offlineDb = AppDatabase(NativeDatabase.memory());
         final offlineHandler = ConflictHandler();
+        final todoSync = todoSyncTable(offlineDb);
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999',
           conflictHandler: offlineHandler,
+          todoSync: todoSync,
           maxRetries: 0,
         );
 
@@ -297,13 +307,15 @@ void main() {
         // (not lost without sync)
         final offlineDb = AppDatabase(NativeDatabase.memory());
         final offlineHandler = ConflictHandler();
+        final todoSync = todoSyncTable(offlineDb);
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999',
           conflictHandler: offlineHandler,
+          todoSync: todoSync,
           maxRetries: 0,
         );
-        final offlineRepo = TodoRepository(offlineDb);
+        final offlineRepo = TodoRepository(offlineDb, todoSync);
 
         // Create todos - they go to outbox
         await offlineRepo.create(title: 'Todo 1');
@@ -325,10 +337,12 @@ void main() {
       test('status transitions: idle -> syncing -> error on failure', () async {
         final offlineDb = AppDatabase(NativeDatabase.memory());
         final offlineHandler = ConflictHandler();
+        final todoSync = todoSyncTable(offlineDb);
         final offlineSync = SyncService(
           db: offlineDb,
           baseUrl: 'http://localhost:99999',
           conflictHandler: offlineHandler,
+          todoSync: todoSync,
           maxRetries: 0,
         );
 
