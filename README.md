@@ -105,8 +105,8 @@ Minimal checklist: install packages, prepare a Drift database with `include` for
 
 ```yaml
 dependencies:
-  offline_first_sync_drift: ^0.1.1
-  offline_first_sync_drift_rest: ^0.1.1
+  offline_first_sync_drift: ^0.1.2
+  offline_first_sync_drift_rest: ^0.1.2
   drift: ^2.0.0
   json_annotation: ^4.8.0
 

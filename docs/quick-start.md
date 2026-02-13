@@ -6,8 +6,8 @@
 # pubspec.yaml
 dependencies:
   drift: ^2.26.1
-  offline_first_sync_drift: ^0.1.1
-  offline_first_sync_drift_rest: ^0.1.1
+  offline_first_sync_drift: ^0.1.2
+  offline_first_sync_drift_rest: ^0.1.2
   http: ^1.4.0
 
 dev_dependencies:

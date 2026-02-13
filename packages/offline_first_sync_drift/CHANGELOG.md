@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-02-13
+
+### Added
+
+- DX sugar for outbox ops:
+  - `UpsertOp.create(...)` and `DeleteOp.create(...)` auto-generate `opId` and UTC timestamps
+- High-level write helpers:
+  - `SyncWriter` and typed `SyncEntityWriter<T>` for atomic "local write + enqueue"
+  - `SyncDatabaseDx` extension one-liners (`insertAndEnqueue`, `replaceAndEnqueue`, `enqueueDelete`, `writeAndEnqueueDelete`)
+- `ChangedFieldsTracker` helper to reduce mistakes with `changedFields`
+- `SyncRepository` base class for common CRUD patterns
+
+### Changed
+
+- `SyncableTable<T>` can derive `id` / `updatedAt` via `toJson` fallback (recommended to still pass `getId` / `getUpdatedAt`)
+
 ## [0.1.1] - 2025-01-27
 
 ### Fixed
