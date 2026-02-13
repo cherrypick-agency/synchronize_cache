@@ -40,8 +40,8 @@ UI  -->  Drift DB  -->  Outbox  -->  sync()  -->  Server
 dependencies:
   drift: ^2.26.1
   drift_flutter: ^0.2.4
-  offline_first_sync_drift: ^0.1.1
-  offline_first_sync_drift_rest: ^0.1.1
+  offline_first_sync_drift: ^0.1.2
+  offline_first_sync_drift_rest: ^0.1.2
   uuid: ^4.5.1
 
 dev_dependencies:
