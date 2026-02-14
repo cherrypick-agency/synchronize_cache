@@ -1,4 +1,4 @@
-/// Outbox операции: upsert/delete с idempotency через opId.
+/// Outbox operations: upsert/delete with idempotency via opId.
 import 'package:offline_first_sync_drift/src/op_id.dart';
 
 sealed class Op {
@@ -9,20 +9,20 @@ sealed class Op {
     required this.localTimestamp,
   });
 
-  /// UUID операции для идемпотентности.
+  /// Operation UUID used for idempotency.
   final String opId;
 
-  /// Тип сущности.
+  /// Entity kind.
   final String kind;
 
-  /// ID сущности.
+  /// Entity ID.
   final String id;
 
-  /// Локальное время создания операции.
+  /// Local timestamp when the operation was created.
   final DateTime localTimestamp;
 }
 
-/// Операция создания/обновления сущности.
+/// Create/update operation for an entity.
 class UpsertOp extends Op {
   UpsertOp({
     required super.opId,
@@ -59,22 +59,22 @@ class UpsertOp extends Op {
     );
   }
 
-  /// JSON payload для отправки на сервер.
+  /// JSON payload sent to the server.
   final Map<String, Object?> payloadJson;
 
-  /// Timestamp когда данные были получены с сервера.
-  /// Используется для детекции конфликтов.
-  /// null означает новую запись.
+  /// Timestamp when this entity version was last received from the server.
+  /// Used for conflict detection.
+  /// Null means this is a new record.
   final DateTime? baseUpdatedAt;
 
-  /// Список полей, которые были изменены пользователем.
-  /// null означает что все поля считаются изменёнными.
+  /// Set of fields changed by the user.
+  /// Null means all fields are considered changed.
   final Set<String>? changedFields;
 
-  /// Является ли запись новой (не существовала на сервере).
+  /// Whether this record is new (did not exist on the server).
   bool get isNewRecord => baseUpdatedAt == null;
 
-  /// Создать копию с изменёнными параметрами.
+  /// Creates a copy with modified parameters.
   UpsertOp copyWith({
     String? opId,
     String? kind,
@@ -94,7 +94,7 @@ class UpsertOp extends Op {
   );
 }
 
-/// Операция удаления сущности.
+/// Delete operation for an entity.
 class DeleteOp extends Op {
   DeleteOp({
     required super.opId,
@@ -125,6 +125,6 @@ class DeleteOp extends Op {
     );
   }
 
-  /// Timestamp когда данные были получены с сервера.
+  /// Timestamp when this entity version was last received from the server.
   final DateTime? baseUpdatedAt;
 }

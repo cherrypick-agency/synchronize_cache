@@ -26,7 +26,7 @@ import 'package:offline_first_sync_drift/src/transport_adapter.dart';
 /// ```dart
 /// final engine = SyncEngine(
 ///   db: database,
-///   transport: RestTransport(baseUrl: 'https://api.example.com'),
+///   transport: RestTransport(base: Uri.parse('https://api.example.com')),
 ///   tables: [
 ///     SyncableTable<Todo>(
 ///       kind: 'todos',

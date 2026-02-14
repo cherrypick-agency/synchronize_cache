@@ -2,13 +2,13 @@ import 'package:offline_first_sync_drift/src/exceptions.dart';
 import 'package:offline_first_sync_drift/src/op.dart';
 import 'package:offline_first_sync_drift/src/sync_database.dart';
 
-/// Сервис для работы с очередью исходящих операций (outbox).
+/// Service for working with the outbox queue.
 class OutboxService {
   OutboxService(this._db);
 
   final SyncDatabaseMixin _db;
 
-  /// Добавить операцию в очередь отправки.
+  /// Add operation to the send queue.
   Future<void> enqueue(Op op) async {
     try {
       await _db.enqueue(op);
@@ -17,7 +17,7 @@ class OutboxService {
     }
   }
 
-  /// Получить операции из очереди для отправки.
+  /// Get operations from queue for sending.
   Future<List<Op>> take({int limit = 100}) async {
     try {
       return await _db.takeOutbox(limit: limit);
@@ -26,7 +26,7 @@ class OutboxService {
     }
   }
 
-  /// Подтвердить отправку операций (удалить из очереди).
+  /// Acknowledge sent operations (remove from queue).
   Future<void> ack(Iterable<String> opIds) async {
     if (opIds.isEmpty) return;
     try {
@@ -36,7 +36,7 @@ class OutboxService {
     }
   }
 
-  /// Очистить операции старше threshold.
+  /// Purge operations older than threshold.
   Future<int> purgeOlderThan(DateTime threshold) async {
     try {
       return await _db.purgeOutboxOlderThan(threshold);
@@ -45,7 +45,7 @@ class OutboxService {
     }
   }
 
-  /// Проверить есть ли операции в очереди.
+  /// Check whether queue contains operations.
   Future<bool> hasOperations() async {
     final ops = await take(limit: 1);
     return ops.isNotEmpty;

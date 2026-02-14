@@ -8,18 +8,18 @@ import 'package:offline_first_sync_drift/src/sync_events.dart';
 import 'package:offline_first_sync_drift/src/syncable_table.dart';
 import 'package:offline_first_sync_drift/src/transport_adapter.dart';
 
-/// Результат разрешения конфликта.
+/// Result of conflict resolution.
 class ConflictResolutionResult {
   const ConflictResolutionResult({required this.resolved, this.resultData});
 
-  /// Конфликт разрешён.
+  /// Whether the conflict was resolved.
   final bool resolved;
 
-  /// Данные после разрешения.
+  /// Data after resolution.
   final Map<String, Object?>? resultData;
 }
 
-/// Сервис для разрешения конфликтов синхронизации.
+/// Service for sync conflict resolution.
 class ConflictService<DB extends GeneratedDatabase> {
   ConflictService({
     required DB db,
@@ -42,7 +42,7 @@ class ConflictService<DB extends GeneratedDatabase> {
   final Map<String, TableConflictConfig> _tableConflictConfigs;
   final StreamController<SyncEvent> _events;
 
-  /// Разрешить конфликт для операции.
+  /// Resolve conflict for an operation.
   Future<ConflictResolutionResult> resolve(
     Op op,
     PushConflict serverConflict,

@@ -1,75 +1,75 @@
 import 'package:offline_first_sync_drift/src/constants.dart';
 
-/// Стратегии и типы для разрешения конфликтов синхронизации.
+/// Strategies and types for sync conflict resolution.
 
-/// Стратегия разрешения конфликтов.
+/// Conflict resolution strategy.
 enum ConflictStrategy {
-  /// Серверная версия всегда побеждает.
+  /// Server version always wins.
   serverWins,
 
-  /// Клиентская версия всегда побеждает (retry с force).
+  /// Client version always wins (retry with force).
   clientWins,
 
-  /// Побеждает версия с более поздним timestamp.
+  /// Version with a newer timestamp wins.
   lastWriteWins,
 
-  /// Попытка слияния изменений.
+  /// Try to merge changes.
   merge,
 
-  /// Ручное разрешение через callback.
+  /// Manual resolution via callback.
   manual,
 
-  /// Автоматический умный merge без потери данных.
+  /// Automatic smart merge without data loss.
   autoPreserve,
 }
 
-/// Результат разрешения конфликта.
+/// Conflict resolution result.
 sealed class ConflictResolution {
   const ConflictResolution();
 }
 
-/// Принять серверную версию.
+/// Accept server version.
 class AcceptServer extends ConflictResolution {
   const AcceptServer();
 }
 
-/// Принять клиентскую версию (повторить push с force).
+/// Accept client version (retry push with force).
 class AcceptClient extends ConflictResolution {
   const AcceptClient();
 }
 
-/// Использовать объединённые данные.
+/// Use merged data.
 class AcceptMerged extends ConflictResolution {
   const AcceptMerged(this.mergedData, {this.mergeInfo});
 
   final Map<String, Object?> mergedData;
 
-  /// Информация о том, откуда взяты поля.
+  /// Information about field source selection.
   final MergeInfo? mergeInfo;
 }
 
-/// Информация о слиянии данных.
+/// Data merge metadata.
 class MergeInfo {
   const MergeInfo({required this.localFields, required this.serverFields});
 
-  /// Поля, взятые из локальных данных.
+  /// Fields taken from local data.
   final Set<String> localFields;
 
-  /// Поля, взятые с сервера.
+  /// Fields taken from server data.
   final Set<String> serverFields;
 }
 
-/// Отложить разрешение (оставить в outbox).
+/// Defer resolution (keep operation in outbox).
 class DeferResolution extends ConflictResolution {
   const DeferResolution();
 }
 
-/// Отменить операцию (удалить из outbox).
+/// Discard operation (remove from outbox).
 class DiscardOperation extends ConflictResolution {
   const DiscardOperation();
 }
 
-/// Информация о конфликте.
+/// Conflict details.
 class Conflict {
   const Conflict({
     required this.kind,
@@ -83,31 +83,31 @@ class Conflict {
     this.changedFields,
   });
 
-  /// Тип сущности.
+  /// Entity kind.
   final String kind;
 
-  /// ID сущности.
+  /// Entity ID.
   final String entityId;
 
-  /// ID операции.
+  /// Operation ID.
   final String opId;
 
-  /// Локальные данные клиента.
+  /// Local client data.
   final Map<String, Object?> localData;
 
-  /// Данные с сервера.
+  /// Server data.
   final Map<String, Object?> serverData;
 
-  /// Локальный timestamp изменения.
+  /// Local change timestamp.
   final DateTime localTimestamp;
 
-  /// Серверный timestamp изменения.
+  /// Server change timestamp.
   final DateTime serverTimestamp;
 
-  /// Версия на сервере (ETag, version number).
+  /// Server version (ETag, version number).
   final String? serverVersion;
 
-  /// Поля, изменённые клиентом.
+  /// Fields changed by the client.
   final Set<String>? changedFields;
 
   @override
@@ -117,34 +117,34 @@ class Conflict {
       'server: ${serverTimestamp.toIso8601String()})';
 }
 
-/// Callback для ручного разрешения конфликта.
+/// Callback for manual conflict resolution.
 typedef ConflictResolver =
     Future<ConflictResolution> Function(Conflict conflict);
 
-/// Callback для слияния данных.
+/// Callback for data merging.
 typedef MergeFunction =
     Map<String, Object?> Function(
       Map<String, Object?> local,
       Map<String, Object?> server,
     );
 
-/// Результат push операции.
+/// Push operation result.
 sealed class PushResult {
   const PushResult();
 }
 
-/// Операция успешно отправлена.
+/// Operation pushed successfully.
 class PushSuccess extends PushResult {
   const PushSuccess({this.serverData, this.serverVersion});
 
-  /// Данные, возвращённые сервером (если есть).
+  /// Data returned by server (if any).
   final Map<String, Object?>? serverData;
 
-  /// Версия на сервере после операции.
+  /// Server version after the operation.
   final String? serverVersion;
 }
 
-/// Конфликт при отправке.
+/// Conflict during push.
 class PushConflict extends PushResult {
   const PushConflict({
     required this.serverData,
@@ -152,22 +152,22 @@ class PushConflict extends PushResult {
     this.serverVersion,
   });
 
-  /// Текущие данные на сервере.
+  /// Current server data.
   final Map<String, Object?> serverData;
 
-  /// Timestamp данных на сервере.
+  /// Server data timestamp.
   final DateTime serverTimestamp;
 
-  /// Версия на сервере.
+  /// Server version.
   final String? serverVersion;
 }
 
-/// Сущность не найдена на сервере (для update/delete).
+/// Entity not found on server (for update/delete).
 class PushNotFound extends PushResult {
   const PushNotFound();
 }
 
-/// Ошибка при отправке (не конфликт).
+/// Push error (not a conflict).
 class PushError extends PushResult {
   const PushError(this.error, [this.stackTrace]);
 
@@ -175,9 +175,9 @@ class PushError extends PushResult {
   final StackTrace? stackTrace;
 }
 
-/// Утилиты для работы с конфликтами.
+/// Conflict utility functions.
 abstract final class ConflictUtils {
-  /// Системные поля которые не мержим.
+  /// System fields that should not be merged.
   static const systemFields = {
     SyncFields.id,
     SyncFields.idUpper,
@@ -190,8 +190,8 @@ abstract final class ConflictUtils {
     SyncFields.deletedAtSnake,
   };
 
-  /// Стандартное слияние: server-поля + изменённые client-поля.
-  /// Сохраняет серверные значения для полей, которые клиент не менял.
+  /// Default merge: server fields + changed client fields.
+  /// Keeps server values for fields not changed by client.
   static Map<String, Object?> defaultMerge(
     Map<String, Object?> local,
     Map<String, Object?> server,
@@ -205,7 +205,7 @@ abstract final class ConflictUtils {
     return merged;
   }
 
-  /// Глубокое слияние для вложенных объектов.
+  /// Deep merge for nested objects.
   static Map<String, Object?> deepMerge(
     Map<String, Object?> local,
     Map<String, Object?> server,
@@ -231,14 +231,14 @@ abstract final class ConflictUtils {
     return merged;
   }
 
-  /// Умный merge который сохраняет ВСЕ данные без потерь.
+  /// Smart merge that preserves ALL data without loss.
   ///
-  /// Логика:
-  /// - Системные поля берутся с сервера
-  /// - Если указаны [changedFields] — применяем только эти поля из локальных
-  /// - Если локальное значение не null, а серверное null — берём локальное
-  /// - Списки объединяются (union)
-  /// - Вложенные объекты мержатся рекурсивно
+  /// Rules:
+  /// - System fields always come from server
+  /// - If [changedFields] is provided, only those local fields are applied
+  /// - If local value is non-null and server value is null, use local
+  /// - Lists are merged as union
+  /// - Nested objects are merged recursively
   static PreservingMergeResult preservingMerge(
     Map<String, Object?> local,
     Map<String, Object?> server, {
@@ -248,7 +248,7 @@ abstract final class ConflictUtils {
     final localFieldsUsed = <String>{};
     final serverFieldsUsed = <String>{};
 
-    // Все поля с сервера по умолчанию
+    // All server fields are used by default
     for (final key in server.keys) {
       if (!systemFields.contains(key)) {
         serverFieldsUsed.add(key);
@@ -256,21 +256,21 @@ abstract final class ConflictUtils {
     }
 
     for (final key in local.keys) {
-      // Системные поля — всегда с сервера
+      // System fields always come from server
       if (systemFields.contains(key)) continue;
 
       final localVal = local[key];
       final serverVal = server[key];
 
-      // Если указаны changedFields — применяем только их
+      // If changedFields is provided, apply only those fields
       if (changedFields != null && !changedFields.contains(key)) {
         continue;
       }
 
-      // Оба null — пропускаем
+      // Both null: skip
       if (localVal == null && serverVal == null) continue;
 
-      // Локальное есть, серверного нет — берём локальное
+      // Local is present and server is missing: use local
       if (localVal != null && serverVal == null) {
         result[key] = localVal;
         localFieldsUsed.add(key);
@@ -278,16 +278,16 @@ abstract final class ConflictUtils {
         continue;
       }
 
-      // Локальное null, серверное есть — оставляем серверное
+      // Local is null and server is present: keep server
       if (localVal == null && serverVal != null) {
         continue;
       }
 
-      // Оба есть — умный merge по типу
+      // Both present: smart merge by value type
       if (localVal is List && serverVal is List) {
         result[key] = _mergeLists(localVal, serverVal);
         localFieldsUsed.add(key);
-        // Списки объединены, оба источника использованы
+        // Lists were merged; both sources were used
       } else if (localVal is Map<String, Object?> &&
           serverVal is Map<String, Object?>) {
         final nestedResult = preservingMerge(localVal, serverVal);
@@ -296,7 +296,7 @@ abstract final class ConflictUtils {
           localFieldsUsed.add(key);
         }
       } else {
-        // Примитивы — берём локальное (пользователь изменил)
+        // Primitive values: use local (user changed it)
         result[key] = localVal;
         localFieldsUsed.add(key);
         serverFieldsUsed.remove(key);
@@ -310,7 +310,7 @@ abstract final class ConflictUtils {
     );
   }
 
-  /// Объединение списков.
+  /// Merge lists.
   static List<Object?> _mergeLists(List<Object?> local, List<Object?> server) {
     final result = List<Object?>.from(server);
 
@@ -333,7 +333,7 @@ abstract final class ConflictUtils {
     return result;
   }
 
-  /// Получить timestamp из JSON данных.
+  /// Extract timestamp from JSON data.
   static DateTime? extractTimestamp(Map<String, Object?> data) {
     final ts = data[SyncFields.updatedAt] ?? data[SyncFields.updatedAtSnake];
     if (ts == null) return null;
@@ -342,7 +342,7 @@ abstract final class ConflictUtils {
   }
 }
 
-/// Результат preservingMerge с информацией об источниках полей.
+/// `preservingMerge` result with field source information.
 class PreservingMergeResult {
   const PreservingMergeResult({
     required this.data,
@@ -350,12 +350,12 @@ class PreservingMergeResult {
     required this.serverFields,
   });
 
-  /// Объединённые данные.
+  /// Merged data.
   final Map<String, Object?> data;
 
-  /// Поля, взятые из локальных данных.
+  /// Fields taken from local data.
   final Set<String> localFields;
 
-  /// Поля, взятые с сервера.
+  /// Fields taken from server data.
   final Set<String> serverFields;
 }

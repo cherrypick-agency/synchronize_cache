@@ -1,22 +1,22 @@
 import 'package:offline_first_sync_drift/src/conflict_resolution.dart';
 
-/// События синхронизации для логирования, UI и метрик.
+/// Synchronization events for logging, UI, and metrics.
 
 sealed class SyncEvent {}
 
-/// Фаза синхронизации.
+/// Synchronization phase.
 enum SyncPhase { push, pull }
 
-/// Причина запуска full resync.
+/// Reason for triggering a full resync.
 enum FullResyncReason {
-  /// Запущено по расписанию (fullResyncInterval).
+  /// Triggered by schedule (`fullResyncInterval`).
   scheduled,
 
-  /// Запущено вручную.
+  /// Triggered manually.
   manual,
 }
 
-/// Начало полной ресинхронизации.
+/// Full resync started.
 class FullResyncStarted implements SyncEvent {
   FullResyncStarted(this.reason);
   final FullResyncReason reason;
@@ -25,7 +25,7 @@ class FullResyncStarted implements SyncEvent {
   String toString() => 'FullResyncStarted($reason)';
 }
 
-/// Начало синхронизации.
+/// Synchronization started.
 class SyncStarted implements SyncEvent {
   SyncStarted(this.phase);
   final SyncPhase phase;
@@ -34,7 +34,7 @@ class SyncStarted implements SyncEvent {
   String toString() => 'SyncStarted($phase)';
 }
 
-/// Прогресс синхронизации.
+/// Synchronization progress.
 class SyncProgress implements SyncEvent {
   SyncProgress(this.phase, this.done, this.total);
   final SyncPhase phase;
@@ -47,7 +47,7 @@ class SyncProgress implements SyncEvent {
   String toString() => 'SyncProgress($phase, $done/$total)';
 }
 
-/// Завершение синхронизации.
+/// Synchronization completed.
 class SyncCompleted implements SyncEvent {
   SyncCompleted(this.took, this.at, {this.stats});
   final Duration took;
@@ -58,7 +58,7 @@ class SyncCompleted implements SyncEvent {
   String toString() => 'SyncCompleted(took: ${took.inMilliseconds}ms)';
 }
 
-/// Статистика синхронизации.
+/// Synchronization statistics.
 class SyncStats {
   const SyncStats({
     this.pushed = 0,
@@ -94,7 +94,7 @@ class SyncStats {
       'conflicts: $conflicts, resolved: $conflictsResolved, errors: $errors)';
 }
 
-/// Ошибка синхронизации.
+/// Synchronization error.
 class SyncErrorEvent implements SyncEvent {
   SyncErrorEvent(this.phase, this.error, [this.stackTrace]);
   final SyncPhase phase;
@@ -105,14 +105,14 @@ class SyncErrorEvent implements SyncEvent {
   String toString() => 'SyncError($phase): $error';
 }
 
-/// Обнаружен конфликт данных.
+/// Data conflict detected.
 class ConflictDetectedEvent implements SyncEvent {
   ConflictDetectedEvent({required this.conflict, required this.strategy});
 
-  /// Информация о конфликте.
+  /// Conflict information.
   final Conflict conflict;
 
-  /// Стратегия, которая будет применена.
+  /// Strategy that will be applied.
   final ConflictStrategy strategy;
 
   @override
@@ -121,7 +121,7 @@ class ConflictDetectedEvent implements SyncEvent {
       'strategy: $strategy)';
 }
 
-/// Конфликт разрешён.
+/// Conflict resolved.
 class ConflictResolvedEvent implements SyncEvent {
   ConflictResolvedEvent({
     required this.conflict,
@@ -129,13 +129,13 @@ class ConflictResolvedEvent implements SyncEvent {
     this.resultData,
   });
 
-  /// Информация о конфликте.
+  /// Conflict information.
   final Conflict conflict;
 
-  /// Как был разрешён конфликт.
+  /// Applied conflict resolution.
   final ConflictResolution resolution;
 
-  /// Итоговые данные после разрешения.
+  /// Final data after resolution.
   final Map<String, Object?>? resultData;
 
   @override
@@ -144,14 +144,14 @@ class ConflictResolvedEvent implements SyncEvent {
       '${resolution.runtimeType})';
 }
 
-/// Конфликт не удалось разрешить автоматически.
+/// Conflict could not be resolved automatically.
 class ConflictUnresolvedEvent implements SyncEvent {
   ConflictUnresolvedEvent({required this.conflict, required this.reason});
 
-  /// Информация о конфликте.
+  /// Conflict information.
   final Conflict conflict;
 
-  /// Причина, почему не удалось разрешить.
+  /// Why resolution failed.
   final String reason;
 
   @override
@@ -160,7 +160,7 @@ class ConflictUnresolvedEvent implements SyncEvent {
       'reason: $reason)';
 }
 
-/// Данные были объединены при разрешении конфликта.
+/// Data was merged during conflict resolution.
 class DataMergedEvent implements SyncEvent {
   DataMergedEvent({
     required this.kind,
@@ -170,19 +170,19 @@ class DataMergedEvent implements SyncEvent {
     required this.mergedData,
   });
 
-  /// Тип сущности.
+  /// Entity kind.
   final String kind;
 
-  /// ID сущности.
+  /// Entity ID.
   final String entityId;
 
-  /// Поля, взятые из локальных данных.
+  /// Fields taken from local data.
   final Set<String> localFields;
 
-  /// Поля, взятые с сервера.
+  /// Fields taken from server data.
   final Set<String> serverFields;
 
-  /// Объединённые данные.
+  /// Merged data.
   final Map<String, Object?> mergedData;
 
   @override
@@ -191,7 +191,7 @@ class DataMergedEvent implements SyncEvent {
       'local: ${localFields.length} fields, server: ${serverFields.length} fields)';
 }
 
-/// Обновление кэша.
+/// Cache update.
 class CacheUpdateEvent implements SyncEvent {
   CacheUpdateEvent(this.kind, {this.upserts = 0, this.deletes = 0});
   final String kind;
@@ -203,7 +203,7 @@ class CacheUpdateEvent implements SyncEvent {
       'CacheUpdate($kind, upserts: $upserts, deletes: $deletes)';
 }
 
-/// Операция успешно отправлена.
+/// Operation pushed successfully.
 class OperationPushedEvent implements SyncEvent {
   OperationPushedEvent({
     required this.opId,
@@ -221,7 +221,7 @@ class OperationPushedEvent implements SyncEvent {
   String toString() => 'OperationPushed($operationType $kind/$entityId)';
 }
 
-/// Операция не удалась.
+/// Operation failed.
 class OperationFailedEvent implements SyncEvent {
   OperationFailedEvent({
     required this.opId,

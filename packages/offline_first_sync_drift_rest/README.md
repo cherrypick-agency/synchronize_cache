@@ -45,6 +45,8 @@ final engine = SyncEngine(
 | `backoffMax` | `Duration` | Maximum retry delay (default: 2m) |
 | `maxRetries` | `int` | Maximum retry attempts (default: 5) |
 | `pushConcurrency` | `int` | Parallel push requests (default: 1) |
+| `enableBatch` | `bool` | Enable batch push endpoint (default: `false`) |
+| `batchSize` | `int` | Maximum operations per batch request (default: `100`) |
 
 ## REST API Contract
 

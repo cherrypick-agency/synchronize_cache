@@ -1,25 +1,25 @@
 import 'package:offline_first_sync_drift/src/conflict_resolution.dart';
 import 'package:offline_first_sync_drift/src/op.dart';
 
-/// Результат pull: список json-элементов и указатель следующей страницы.
+/// Pull result: list of JSON items and next page pointer.
 class PullPage {
   PullPage({required this.items, this.nextPageToken});
 
-  /// Элементы страницы в формате JSON.
+  /// Page items as JSON objects.
   final List<Map<String, Object?>> items;
 
-  /// Токен следующей страницы, null если это последняя страница.
+  /// Next page token; null if this is the last page.
   final String? nextPageToken;
 }
 
-/// Результат push для одной операции.
+/// Push result for a single operation.
 class OpPushResult {
   const OpPushResult({required this.opId, required this.result});
 
-  /// ID операции.
+  /// Operation ID.
   final String opId;
 
-  /// Результат push.
+  /// Push result.
   final PushResult result;
 
   bool get isSuccess => result is PushSuccess;
@@ -28,34 +28,34 @@ class OpPushResult {
   bool get isError => result is PushError;
 }
 
-/// Результат push для пакета операций.
+/// Push result for a batch of operations.
 class BatchPushResult {
   const BatchPushResult({required this.results});
 
   final List<OpPushResult> results;
 
-  /// Все операции успешны.
+  /// Whether all operations succeeded.
   bool get allSuccess => results.every((r) => r.isSuccess);
 
-  /// Есть конфликты.
+  /// Whether there are conflicts.
   bool get hasConflicts => results.any((r) => r.isConflict);
 
-  /// Есть ошибки.
+  /// Whether there are errors.
   bool get hasErrors => results.any((r) => r.isError);
 
-  /// Получить конфликтные операции.
+  /// Conflict operations.
   Iterable<OpPushResult> get conflicts => results.where((r) => r.isConflict);
 
-  /// Получить успешные операции.
+  /// Successful operations.
   Iterable<OpPushResult> get successes => results.where((r) => r.isSuccess);
 
-  /// Получить операции с ошибками.
+  /// Failed operations.
   Iterable<OpPushResult> get errors => results.where((r) => r.isError);
 }
 
-/// Интерфейс транспорта для сети.
+/// Network transport interface.
 abstract interface class TransportAdapter {
-  /// Получить страницу данных с сервера.
+  /// Pull a page of data from the server.
   Future<PullPage> pull({
     required String kind,
     required DateTime updatedSince,
@@ -65,27 +65,27 @@ abstract interface class TransportAdapter {
     bool includeDeleted = true,
   });
 
-  /// Отправить операции на сервер.
-  /// Возвращает результат для каждой операции включая конфликты.
+  /// Push operations to the server.
+  /// Returns a per-operation result, including conflicts.
   Future<BatchPushResult> push(List<Op> ops);
 
-  /// Принудительно отправить операцию (игнорировать конфликт версий).
-  /// Используется для стратегии clientWins.
+  /// Force-push an operation (ignore version conflict).
+  /// Used by the `clientWins` strategy.
   Future<PushResult> forcePush(Op op);
 
-  /// Получить текущую версию сущности с сервера.
+  /// Fetch the current server version of an entity.
   Future<FetchResult> fetch({required String kind, required String id});
 
-  /// Проверить доступность сервера.
+  /// Check server availability.
   Future<bool> health();
 }
 
-/// Результат получения одной сущности.
+/// Result of fetching a single entity.
 sealed class FetchResult {
   const FetchResult();
 }
 
-/// Сущность найдена.
+/// Entity found.
 class FetchSuccess extends FetchResult {
   const FetchSuccess({required this.data, this.version});
 
@@ -93,12 +93,12 @@ class FetchSuccess extends FetchResult {
   final String? version;
 }
 
-/// Сущность не найдена.
+/// Entity not found.
 class FetchNotFound extends FetchResult {
   const FetchNotFound();
 }
 
-/// Ошибка получения.
+/// Fetch error.
 class FetchError extends FetchResult {
   const FetchError(this.error, [this.stackTrace]);
 

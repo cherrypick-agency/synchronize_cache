@@ -1,17 +1,17 @@
 import 'package:drift/drift.dart';
 import 'package:offline_first_sync_drift/src/tables/sync_data_classes.dart';
 
-/// Таблица курсоров для стабильной пагинации при pull.
-/// Хранит позицию последней синхронизации по каждому kind.
+/// Cursor table for stable pull pagination.
+/// Stores the last sync position for each kind.
 @UseRowClass(SyncCursorData)
 class SyncCursors extends Table {
-  /// Тип сущности.
+  /// Entity kind.
   TextColumn get kind => text()();
 
-  /// Timestamp последнего элемента (milliseconds UTC).
+  /// Timestamp of the last item (UTC milliseconds).
   IntColumn get ts => integer()();
 
-  /// ID последнего элемента для разрешения коллизий при одинаковом ts.
+  /// ID of the last item to resolve collisions for equal timestamps.
   TextColumn get lastId => text()();
 
   @override

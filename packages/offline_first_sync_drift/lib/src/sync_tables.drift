@@ -1,5 +1,5 @@
--- Экспорт таблиц синхронизации для использования через include.
--- Этот файл позволяет другим пакетам подключать sync таблицы:
+-- Export sync tables for inclusion via `include`.
+-- This file allows other packages to include sync tables:
 --
 -- @DriftDatabase(
 --   include: {'package:offline_first_sync_drift/src/sync_tables.drift'},

@@ -8,19 +8,19 @@ import 'package:offline_first_sync_drift/src/tables/cursors.drift.dart';
 import 'package:offline_first_sync_drift/src/tables/outbox.drift.dart';
 import 'package:offline_first_sync_drift/src/tables/sync_data_classes.dart';
 
-/// Mixin для базы данных с поддержкой синхронизации.
+/// Mixin for databases with synchronization support.
 ///
-/// Для использования:
-/// 1. Добавьте в @DriftDatabase:
+/// Usage:
+/// 1. Add to `@DriftDatabase`:
 ///    `include: {'package:offline_first_sync_drift/src/sync_tables.drift'}`
-/// 2. Добавьте "with SyncDatabaseMixin" к вашему классу базы данных
+/// 2. Add `with SyncDatabaseMixin` to your database class.
 ///
-/// Drift автоматически подключит sync_outbox и sync_cursors таблицы.
+/// Drift will automatically include the `sync_outbox` and `sync_cursors` tables.
 mixin SyncDatabaseMixin on GeneratedDatabase {
   TableInfo<Table, SyncOutboxData>? _outboxTable;
   TableInfo<Table, SyncCursorData>? _cursorsTable;
 
-  /// Получить таблицу outbox.
+  /// Get outbox table.
   TableInfo<Table, SyncOutboxData> get _outbox =>
       _outboxTable ??= allTables
           .whereType<TableInfo<Table, SyncOutboxData>>()
@@ -35,7 +35,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
                     ),
           );
 
-  /// Получить таблицу cursors.
+  /// Get cursors table.
   TableInfo<Table, SyncCursorData> get _cursors =>
       _cursorsTable ??= allTables
           .whereType<TableInfo<Table, SyncCursorData>>()
@@ -50,7 +50,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
                     ),
           );
 
-  /// Добавить операцию в очередь отправки.
+  /// Add operation to the outbox queue.
   Future<void> enqueue(Op op) async {
     final ts = op.localTimestamp.toUtc().millisecondsSinceEpoch;
 
@@ -91,7 +91,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
     }
   }
 
-  /// Получить операции из очереди для отправки.
+  /// Get queued operations for sending.
   Future<List<Op>> takeOutbox({int limit = 100}) async {
     final rows =
         await customSelect(
@@ -156,7 +156,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
     }).toList();
   }
 
-  /// Подтвердить отправку операций (удалить из очереди).
+  /// Acknowledge sent operations (remove from queue).
   Future<void> ackOutbox(Iterable<String> opIds) async {
     if (opIds.isEmpty) return;
     final ids = opIds.toList();
@@ -168,7 +168,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
     );
   }
 
-  /// Получить курсор для типа сущности.
+  /// Get cursor for an entity kind.
   Future<Cursor?> getCursor(String kind) async {
     final rows =
         await customSelect(
@@ -190,7 +190,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
     );
   }
 
-  /// Сохранить курсор для типа сущности.
+  /// Save cursor for an entity kind.
   Future<void> setCursor(String kind, Cursor cursor) async {
     await into(_cursors).insertOnConflictUpdate(
       SyncCursorsCompanion.insert(
@@ -201,7 +201,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
     );
   }
 
-  /// Очистить операции старше threshold.
+  /// Purge operations older than threshold.
   Future<int> purgeOutboxOlderThan(DateTime threshold) async {
     final th = threshold.toUtc().millisecondsSinceEpoch;
     return customUpdate(
@@ -211,7 +211,7 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
     );
   }
 
-  /// Сбросить все курсоры для указанных типов.
+  /// Reset all cursors for the specified kinds.
   Future<void> resetAllCursors(Set<String> kinds) async {
     if (kinds.isEmpty) return;
 
@@ -222,8 +222,8 @@ mixin SyncDatabaseMixin on GeneratedDatabase {
     );
   }
 
-  /// Очистить данные синхронизируемых таблиц.
-  /// [tableNames] — имена таблиц для очистки.
+  /// Clear data from syncable tables.
+  /// [tableNames] - table names to clear.
   Future<void> clearSyncableTables(List<String> tableNames) async {
     for (final tableName in tableNames) {
       await customStatement('DELETE FROM "$tableName"');

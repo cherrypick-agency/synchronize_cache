@@ -1,10 +1,10 @@
-/// Курсор для стабильной пагинации: (updatedAt, lastId).
+/// Cursor for stable pagination: `(updatedAt, lastId)`.
 class Cursor {
   const Cursor({required this.ts, required this.lastId});
 
-  /// Timestamp последнего элемента.
+  /// Timestamp of the last item.
   final DateTime ts;
 
-  /// ID последнего элемента для разрешения коллизий.
+  /// ID of the last item to resolve timestamp collisions.
   final String lastId;
 }

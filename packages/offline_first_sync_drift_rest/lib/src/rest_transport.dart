@@ -161,7 +161,7 @@ class RestTransport implements TransportAdapter {
     final results = <OpPushResult>[];
 
     if (pushConcurrency > 1) {
-      // Параллельная отправка батчами
+      // Parallel push in chunks
       for (var i = 0; i < ops.length; i += pushConcurrency) {
         final end =
             (i + pushConcurrency < ops.length)
@@ -178,7 +178,7 @@ class RestTransport implements TransportAdapter {
         results.addAll(chunkResults);
       }
     } else {
-      // Последовательная отправка
+      // Sequential push
       for (final op in ops) {
         final result = await _pushSingleOp(op, auth);
         results.add(OpPushResult(opId: op.opId, result: result));
@@ -191,7 +191,7 @@ class RestTransport implements TransportAdapter {
   Future<BatchPushResult> _pushBatch(List<Op> ops, String auth) async {
     final results = <OpPushResult>[];
 
-    // Разбиваем на чанки по batchSize
+    // Split operations into chunks by batchSize
     final chunks = <List<Op>>[];
     for (var i = 0; i < ops.length; i += batchSize) {
       final end = (i + batchSize < ops.length) ? i + batchSize : ops.length;
@@ -199,7 +199,7 @@ class RestTransport implements TransportAdapter {
     }
 
     if (pushConcurrency > 1) {
-      // Обрабатываем чанки параллельно
+      // Process chunks in parallel
       for (var i = 0; i < chunks.length; i += pushConcurrency) {
         final end =
             (i + pushConcurrency < chunks.length)
@@ -216,7 +216,7 @@ class RestTransport implements TransportAdapter {
         }
       }
     } else {
-      // Обрабатываем чанки последовательно
+      // Process chunks sequentially
       for (final chunk in chunks) {
         final batchRes = await _pushBatchChunk(chunk, auth);
         results.addAll(batchRes.results);
@@ -267,20 +267,20 @@ class RestTransport implements TransportAdapter {
         final resultsJson =
             (body['results'] as List?)?.cast<Map<String, Object?>>() ?? [];
 
-        // Создаем карту результатов для быстрого поиска
+        // Build result map for fast lookup
         final resultsMap = <String, OpPushResult>{};
         for (final item in resultsJson) {
           final opRes = _parseBatchItem(item);
           resultsMap[opRes.opId] = opRes;
         }
 
-        // Формируем итоговый список, сохраняя порядок ops в чанке
+        // Build final list while preserving original op order within chunk
         final results =
             chunk.map((op) {
               if (resultsMap.containsKey(op.opId)) {
                 return resultsMap[op.opId]!;
               }
-              // Если сервер не вернул результат для операции
+              // If server did not return a result for this operation
               return OpPushResult(
                 opId: op.opId,
                 result: PushError(
@@ -360,7 +360,7 @@ class RestTransport implements TransportAdapter {
       headers['X-Force-Update'] = 'true';
     }
 
-    // Подготовка payload с _baseUpdatedAt для детекции конфликта
+    // Prepare payload with _baseUpdatedAt for conflict detection
     final payload = Map<String, Object?>.from(op.payloadJson);
     if (op.baseUpdatedAt != null && !force) {
       payload['_baseUpdatedAt'] = op.baseUpdatedAt!.toUtc().toIso8601String();
@@ -390,7 +390,7 @@ class RestTransport implements TransportAdapter {
       headers['X-Force-Delete'] = 'true';
     }
 
-    // Для delete тоже можно передать baseUpdatedAt
+    // `baseUpdatedAt` can also be sent for delete
     Map<String, String>? queryParams;
     if (op.baseUpdatedAt != null && !force) {
       queryParams = {
@@ -472,7 +472,7 @@ class RestTransport implements TransportAdapter {
     String? serverVersion;
 
     try {
-      // Поддержка разных форматов ответа от сервера
+      // Support multiple server response formats
       serverData =
           (body['current'] as Map<String, Object?>?) ??
           (body['serverData'] as Map<String, Object?>?) ??

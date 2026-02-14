@@ -11,7 +11,7 @@ import 'package:offline_first_sync_drift/src/services/outbox_service.dart';
 import 'package:offline_first_sync_drift/src/sync_events.dart';
 import 'package:offline_first_sync_drift/src/transport_adapter.dart';
 
-/// Статистика push операций.
+/// Push operation statistics.
 class PushStats {
   const PushStats({
     this.pushed = 0,
@@ -38,7 +38,7 @@ class PushStats {
   );
 }
 
-/// Сервис для отправки локальных изменений на сервер.
+/// Service for pushing local changes to the server.
 class PushService {
   PushService({
     required OutboxService outbox,
@@ -58,7 +58,7 @@ class PushService {
   final SyncConfig _config;
   final StreamController<SyncEvent> _events;
 
-  /// Отправить все операции из outbox.
+  /// Push all operations from outbox.
   Future<PushStats> pushAll() async {
     final counters = _PushCounters();
 

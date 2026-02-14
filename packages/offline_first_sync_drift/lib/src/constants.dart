@@ -1,39 +1,39 @@
-// Константы для синхронизации.
+// Synchronization constants.
 
-/// Типы операций в outbox.
+/// Operation types in outbox.
 abstract final class OpType {
   static const upsert = 'upsert';
   static const delete = 'delete';
 }
 
-/// Имена полей для сериализации/десериализации.
+/// Field names for serialization/deserialization.
 abstract final class SyncFields {
-  // ID поля
+  // ID fields
   static const id = 'id';
   static const idUpper = 'ID';
   static const uuid = 'uuid';
 
-  // Timestamp поля (camelCase)
+  // Timestamp fields (camelCase)
   static const updatedAt = 'updatedAt';
   static const createdAt = 'createdAt';
   static const deletedAt = 'deletedAt';
 
-  // Timestamp поля (snake_case)
+  // Timestamp fields (snake_case)
   static const updatedAtSnake = 'updated_at';
   static const createdAtSnake = 'created_at';
   static const deletedAtSnake = 'deleted_at';
 
-  /// Все ID поля для поиска.
+  /// All ID fields used for lookup.
   static const idFields = [id, idUpper, uuid];
 
-  /// Все updatedAt поля для поиска.
+  /// All updatedAt fields used for lookup.
   static const updatedAtFields = [updatedAt, updatedAtSnake];
 
-  /// Все deletedAt поля для поиска.
+  /// All deletedAt fields used for lookup.
   static const deletedAtFields = [deletedAt, deletedAtSnake];
 }
 
-/// Имена колонок в таблицах (snake_case для SQL).
+/// Table column names (snake_case for SQL).
 abstract final class TableColumns {
   static const opId = 'op_id';
   static const kind = 'kind';
@@ -47,14 +47,14 @@ abstract final class TableColumns {
   static const lastId = 'last_id';
 }
 
-/// Имена таблиц.
+/// Table names.
 abstract final class TableNames {
   static const syncOutbox = 'sync_outbox';
   static const syncCursors = 'sync_cursors';
 }
 
-/// Специальные значения для курсоров.
+/// Special cursor kinds.
 abstract final class CursorKinds {
-  /// Курсор для хранения времени последнего full resync.
+  /// Cursor key for storing timestamp of last full resync.
   static const fullResync = '__full_resync__';
 }

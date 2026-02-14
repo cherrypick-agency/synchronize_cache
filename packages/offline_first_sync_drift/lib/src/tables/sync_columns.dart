@@ -1,26 +1,26 @@
 import 'package:drift/drift.dart';
 
-/// Маркерный интерфейс для синхронизируемых таблиц.
-/// Позволяет типобезопасно определять, что таблица содержит
-/// обязательные системные поля.
+/// Marker interface for syncable tables.
+/// Allows type-safe checks that a table includes
+/// required system fields.
 abstract interface class SynchronizableTable {
   DateTimeColumn get updatedAt;
   DateTimeColumn get deletedAt;
   DateTimeColumn get deletedAtLocal;
 }
 
-/// Mixin для таблиц с синхронизацией.
-/// Добавляет стандартные поля updatedAt, deletedAt, deletedAtLocal.
+/// Mixin for synchronized tables.
+/// Adds standard fields: updatedAt, deletedAt, deletedAtLocal.
 mixin SyncColumns on Table implements SynchronizableTable {
-  /// Время последнего обновления (UTC).
+  /// Last update time (UTC).
   @override
   DateTimeColumn get updatedAt => dateTime()();
 
-  /// Время удаления на сервере (UTC), null если не удалено.
+  /// Server-side deletion time (UTC), null if not deleted.
   @override
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
-  /// Время локального удаления (UTC), для отложенной очистки.
+  /// Local deletion time (UTC), used for deferred cleanup.
   @override
   DateTimeColumn get deletedAtLocal => dateTime().nullable()();
 }

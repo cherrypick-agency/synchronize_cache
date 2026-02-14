@@ -3,13 +3,13 @@ import 'package:offline_first_sync_drift/src/cursor.dart';
 import 'package:offline_first_sync_drift/src/exceptions.dart';
 import 'package:offline_first_sync_drift/src/sync_database.dart';
 
-/// Сервис для работы с курсорами синхронизации.
+/// Service for synchronization cursors.
 class CursorService {
   CursorService(this._db);
 
   final SyncDatabaseMixin _db;
 
-  /// Получить курсор для типа сущности.
+  /// Get cursor for an entity kind.
   Future<Cursor?> get(String kind) async {
     try {
       return await _db.getCursor(kind);
@@ -18,7 +18,7 @@ class CursorService {
     }
   }
 
-  /// Сохранить курсор для типа сущности.
+  /// Save cursor for an entity kind.
   Future<void> set(String kind, Cursor cursor) async {
     try {
       await _db.setCursor(kind, cursor);
@@ -27,7 +27,7 @@ class CursorService {
     }
   }
 
-  /// Сбросить курсор для типа сущности.
+  /// Reset cursor for an entity kind.
   Future<void> reset(String kind) async {
     await set(
       kind,
@@ -38,7 +38,7 @@ class CursorService {
     );
   }
 
-  /// Сбросить все курсоры (кроме служебных).
+  /// Reset all cursors (except service cursors).
   Future<void> resetAll(Set<String> kinds) async {
     try {
       await _db.resetAllCursors(kinds);
@@ -47,7 +47,7 @@ class CursorService {
     }
   }
 
-  /// Получить время последнего full resync.
+  /// Get timestamp of the last full resync.
   Future<DateTime?> getLastFullResync() async {
     try {
       final cursor = await _db.getCursor(CursorKinds.fullResync);
@@ -58,7 +58,7 @@ class CursorService {
     }
   }
 
-  /// Сохранить время последнего full resync.
+  /// Save timestamp of the last full resync.
   Future<void> setLastFullResync(DateTime timestamp) async {
     try {
       await _db.setCursor(

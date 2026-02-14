@@ -10,7 +10,7 @@ import 'package:offline_first_sync_drift/src/sync_events.dart';
 import 'package:offline_first_sync_drift/src/syncable_table.dart';
 import 'package:offline_first_sync_drift/src/transport_adapter.dart';
 
-/// Сервис для получения изменений с сервера.
+/// Service for pulling changes from the server.
 class PullService<DB extends GeneratedDatabase> {
   PullService({
     required DB db,
@@ -33,7 +33,7 @@ class PullService<DB extends GeneratedDatabase> {
   final SyncConfig _config;
   final StreamController<SyncEvent> _events;
 
-  /// Получить изменения для указанных типов.
+  /// Pull changes for specified kinds.
   Future<int> pullKinds(Set<String> kinds) async {
     var total = 0;
     for (final kind in kinds) {
@@ -44,7 +44,7 @@ class PullService<DB extends GeneratedDatabase> {
     return total;
   }
 
-  /// Получить изменения для типа.
+  /// Pull changes for a kind.
   Future<int> pullKind(String kind) async {
     final tableConfig = _tables[kind];
     if (tableConfig == null) return 0;

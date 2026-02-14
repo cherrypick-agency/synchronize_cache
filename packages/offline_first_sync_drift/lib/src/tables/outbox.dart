@@ -1,35 +1,35 @@
 import 'package:drift/drift.dart';
 import 'package:offline_first_sync_drift/src/tables/sync_data_classes.dart';
 
-/// Таблица очереди операций для синхронизации.
-/// Хранит локальные изменения до отправки на сервер.
+/// Outbox table for synchronization operations.
+/// Stores local changes until they are sent to the server.
 @UseRowClass(SyncOutboxData)
 class SyncOutbox extends Table {
-  /// Уникальный идентификатор операции.
+  /// Unique operation identifier.
   TextColumn get opId => text()();
 
-  /// Тип сущности (например, 'daily_feeling').
+  /// Entity kind (for example, `daily_feeling`).
   TextColumn get kind => text()();
 
-  /// ID сущности.
+  /// Entity ID.
   TextColumn get entityId => text()();
 
-  /// Тип операции: 'upsert' или 'delete'.
+  /// Operation type: `upsert` or `delete`.
   TextColumn get op => text()();
 
-  /// JSON payload для upsert операций.
+  /// JSON payload for upsert operations.
   TextColumn get payload => text().nullable()();
 
-  /// Timestamp операции (milliseconds UTC).
+  /// Operation timestamp (UTC milliseconds).
   IntColumn get ts => integer()();
 
-  /// Количество попыток отправки.
+  /// Number of send attempts.
   IntColumn get tryCount => integer().withDefault(const Constant(0))();
 
-  /// Timestamp когда данные были получены с сервера (milliseconds UTC).
+  /// Timestamp when data was last fetched from server (UTC milliseconds).
   IntColumn get baseUpdatedAt => integer().nullable()();
 
-  /// JSON array с именами изменённых полей.
+  /// JSON array with changed field names.
   TextColumn get changedFields => text().nullable()();
 
   @override
