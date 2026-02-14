@@ -356,7 +356,7 @@ After determining the strategy, `_applyResolution()` performs the specific actio
 | `AcceptServer` | Write server data to local DB via `insertOnConflictUpdate` |
 | `AcceptClient` | Resend the operation via `TransportAdapter.forcePush()` with retry |
 | `AcceptMerged` | Create a new `UpsertOp` with merged data, `forcePush()`, update local DB |
-| `DeferResolution` | Do nothing, operation stays in outbox |
+| `DeferResolution` | Defer resolution; operation remains in outbox |
 | `DiscardOperation` | Remove operation from outbox (data loss by user decision) |
 
 ### forcePush with Retry

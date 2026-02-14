@@ -47,7 +47,7 @@ Rebuild: `dart run build_runner build --delete-conflicting-outputs`
 
 ---
 
-## 3. Sync Works but Data Does Not Appear in UI
+## 3. Sync works but data does not appear in UI
 
 **Cause 1:** `deletedAt` is not filtered. The `SyncColumns` mixin adds `updatedAt`, `deletedAt`, `deletedAtLocal`. During pull, records with `deletedAt != null` are inserted into the DB but marked as deleted.
 

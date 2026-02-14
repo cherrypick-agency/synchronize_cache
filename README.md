@@ -45,7 +45,7 @@ The Flutter ecosystem has several offline-first solutions. Each has real strengt
 
 ### Where we are stronger
 
-**Hybrid conflict resolution: client merges, server validates.** The library ships 6 ready-to-use strategies (`autoPreserve`, `serverWins`, `clientWins`, `lastWriteWins`, `merge`, `manual`) that run on the client. The actual flow is hybrid:
+**Hybrid conflict resolution: client merges, server validates.** The library ships six ready-to-use strategies (`autoPreserve`, `serverWins`, `clientWins`, `lastWriteWins`, `merge`, `manual`) that run on the client. The actual flow is hybrid:
 
 ```
 1. Client → PUT /todos/123  {data, _baseUpdatedAt: "..."}
@@ -84,11 +84,11 @@ tableConflictConfigs: {
 
 No other Flutter library offers this.
 
-**Any backend via TransportAdapter.** REST, GraphQL, gRPC, WebSocket, legacy SOAP — implement `TransportAdapter` and you're done. PowerSync requires Postgres, MongoDB, MySQL, or SQL Server as your *source database*. Firebase is Firebase-only. Brick supports REST/GraphQL/Supabase.
+**Works with any backend via TransportAdapter.** REST, GraphQL, gRPC, WebSocket, legacy SOAP — implement `TransportAdapter` and you are done. PowerSync requires Postgres, MongoDB, MySQL, or SQL Server as your *source database*. Firebase is Firebase-only. Brick supports REST/GraphQL/Supabase.
 
 **Drift-native.** Built on Drift from the ground up — type-safe queries, reactive streams, code generation. PowerSync has Drift integration in alpha. Brick uses its own DSL over sqflite.
 
-**Free forever, MIT license.** No SaaS, no usage limits, no deactivation after 7 days of inactivity (PowerSync free tier does this). No vendor lock-in at all.
+**Free forever, MIT license.** No SaaS, no usage limits, no deactivation after seven days of inactivity (PowerSync free tier does this). No vendor lock-in at all.
 
 ### Where others are stronger
 

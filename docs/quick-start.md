@@ -415,7 +415,7 @@ Future<void> main() async {
   // 8. Auto-sync
   engine.startAuto(interval: const Duration(minutes: 5));
 
-  // 9. Don't forget on shutdown
+  // 9. Remember to dispose on shutdown
   engine.dispose();
   await db.close();
 }

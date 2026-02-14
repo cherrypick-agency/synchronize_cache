@@ -182,13 +182,13 @@ class TodoListBody extends StatelessWidget {
 }
 ```
 
-The `watchAll()` method in the repository filters deleted records via `deletedAt.isNull() & deletedAtLocal.isNull()` and returns `.watch()`.
+The `watchAll()` method filters deleted records using `deletedAt.isNull() & deletedAtLocal.isNull()` and returns a stream via `.watch()`.
 
 ---
 
 ## 4. Sync on Application Lifecycle
 
-`WidgetsBindingObserver` triggers sync when returning from the background and stops auto-sync when going to background:
+A `WidgetsBindingObserver` triggers sync when the app returns from the background and stops auto-sync when it goes to the background:
 
 ```dart
 class SyncLifecycleObserver extends StatefulWidget {

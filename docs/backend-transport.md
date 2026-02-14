@@ -139,7 +139,7 @@ Content-Type: application/json
 POST /{kind}
 ```
 
-Rarely used -- only when the client does not generate an `id`. In most cases the client uses `PUT` with a pre-generated UUID.
+Rarely used—only when the client does not generate an `id`. In most cases the client uses `PUT` with a pre-generated UUID.
 
 **Request Body:**
 
@@ -469,7 +469,7 @@ Depending on the configured `ConflictStrategy`:
 
 ### X-Idempotency-Key Header
 
-The client sends a unique `opId` (UUID) in the `X-Idempotency-Key` header with every push and delete operation. This guarantees that resending the same operation (e.g., after a network loss) does not create duplicates.
+The client sends a unique `opId` (UUID) in the `X-Idempotency-Key` header with every push and delete operation. This ensures that resending the same operation (e.g., after a network loss) does not create duplicates.
 
 ```http
 PUT /tasks/abc-123
