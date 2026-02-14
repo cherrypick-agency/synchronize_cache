@@ -53,8 +53,8 @@ jobs:
             fi
           done
 
-      - name: Install dartdoc_vitepress
-        run: dart pub global activate --source git https://github.com/777genius/dartdoc_vitepress.git
+      - name: Install dartdoc_vitepress (latest)
+        run: dart pub global activate --overwrite --source git https://github.com/777genius/dartdoc_vitepress.git
 
       - name: Generate API documentation
         run: |

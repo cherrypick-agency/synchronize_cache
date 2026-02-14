@@ -391,4 +391,4 @@ The diff viewer highlights conflicting fields:
 
 - [todo_simple](../todo_simple/) - Simplified flow without conflicts
 - [offline_first_sync_drift documentation](../../../packages/offline_first_sync_drift/)
-- [Backend Guidelines](../../../docs/backend_guidelines.md)
+- [Backend transport guide](../../../docs/backend-transport.md)

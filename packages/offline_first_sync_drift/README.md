@@ -18,12 +18,12 @@ Offline-first synchronization library for Dart/Flutter applications built on top
 
 ```yaml
 dependencies:
-  offline_first_sync_drift: ^0.1.0
-  drift: ^2.26.0
+  offline_first_sync_drift: ^0.1.2
+  drift: ^2.26.1
 
 dev_dependencies:
-  drift_dev: ^2.26.0
-  build_runner: ^2.4.0
+  drift_dev: ^2.26.1
+  build_runner: ^2.4.15
 ```
 
 Add `build.yaml` for modular generation:

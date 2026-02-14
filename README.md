@@ -129,12 +129,12 @@ Minimal checklist: install packages, prepare a Drift database with `include` for
 dependencies:
   offline_first_sync_drift: ^0.1.2
   offline_first_sync_drift_rest: ^0.1.2
-  drift: ^2.0.0
+  drift: ^2.26.1
   json_annotation: ^4.8.0
 
 dev_dependencies:
-  drift_dev: ^2.0.0
-  build_runner: ^2.0.0
+  drift_dev: ^2.26.1
+  build_runner: ^2.4.15
   json_serializable: ^6.7.0
 ```
 
@@ -354,14 +354,14 @@ await writer.replaceAndEnqueue(
 Call `sync()` manually when needed (pull/push/merge) or enable the auto timer. You can limit `kinds` if you only need to refresh part of the data.
 
 ```dart
-// Вручную
+// Manual
 final stats = await engine.sync();
 
-// Автоматически каждые 5 минут
+// Auto-sync every 5 minutes
 engine.startAuto(interval: Duration(minutes: 5));
 engine.stopAuto();
 
-// Для конкретных таблиц
+// For specific tables only
 await engine.sync(kinds: {'daily_feeling', 'health_record'});
 ```
 
@@ -387,9 +387,9 @@ A conflict happens when data changed both on the client and server. Configure be
 Default strategy — merges without losing data:
 
 ```dart
-// Локально: {mood: 5, notes: "My notes"}
-// На сервере: {mood: 3, energy: 7}
-// Результат:  {mood: 5, energy: 7, notes: "My notes"}
+// Local:  {mood: 5, notes: "My notes"}
+// Server: {mood: 3, energy: 7}
+// Result: {mood: 5, energy: 7, notes: "My notes"}
 ```
 
 How it works:
@@ -466,32 +466,32 @@ SyncEngine emits an event stream that is handy for UI indicators, logging, and m
 engine.events.listen((event) {
   switch (event) {
     case SyncStarted(:final phase):
-      print('Начало: $phase');
+      print('Started: $phase');
     case SyncProgress(:final done, :final total):
-      print('Прогресс: $done/$total');
+      print('Progress: $done/$total');
     case SyncCompleted(:final stats):
-      print('Готово: pushed=${stats.pushed}, pulled=${stats.pulled}');
+      print('Done: pushed=${stats.pushed}, pulled=${stats.pulled}');
     case ConflictDetectedEvent(:final conflict):
-      print('Конфликт: ${conflict.entityId}');
+      print('Conflict: ${conflict.entityId}');
     case SyncErrorEvent(:final error):
-      print('Ошибка: $error');
+      print('Error: $error');
   }
 });
 
 // Stats after sync
 final stats = await engine.sync();
-print('Отправлено: ${stats.pushed}');
-print('Получено: ${stats.pulled}');
-print('Конфликтов: ${stats.conflicts}');
-print('Разрешено: ${stats.conflictsResolved}');
-print('Ошибок: ${stats.errors}');
+print('Pushed: ${stats.pushed}');
+print('Pulled: ${stats.pulled}');
+print('Conflicts: ${stats.conflicts}');
+print('Resolved: ${stats.conflictsResolved}');
+print('Errors: ${stats.errors}');
 ```
 
 ---
 
 ## Server requirements
 
-The server must support a predictable REST contract: idempotent PUT requests, stable pagination, and conflict checks via `updatedAt`. See [`docs/backend_guidelines.md`](docs/backend_guidelines.md) for the full guide with examples and a checklist.
+The server must support a predictable REST contract: idempotent PUT requests, stable pagination, and conflict checks via `updatedAt`. See [`docs/backend-transport.md`](docs/backend-transport.md) for the full guide with examples and a checklist.
 
 Quick reminder:
 

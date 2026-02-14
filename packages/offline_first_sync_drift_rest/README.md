@@ -6,7 +6,7 @@ REST transport adapter for [offline_first_sync_drift](https://pub.dev/packages/o
 
 ```yaml
 dependencies:
-  offline_first_sync_drift_rest: ^0.1.0
+  offline_first_sync_drift_rest: ^0.1.2
 ```
 
 ## Usage
