@@ -45,7 +45,20 @@ The Flutter ecosystem has several offline-first solutions. Each has real strengt
 
 ### Where we are stronger
 
-**Client-side conflict resolution out of the box.** This is our main differentiator. The library ships 6 ready-to-use strategies (`autoPreserve`, `serverWins`, `clientWins`, `lastWriteWins`, `merge`, `manual`) that run on the client. Your server only needs to return `409` with current data — no conflict logic on the backend.
+**Hybrid conflict resolution: client merges, server validates.** The library ships 6 ready-to-use strategies (`autoPreserve`, `serverWins`, `clientWins`, `lastWriteWins`, `merge`, `manual`) that run on the client. The actual flow is hybrid:
+
+```
+1. Client → PUT /todos/123  {data, _baseUpdatedAt: "..."}
+2. Server checks _baseUpdatedAt → 409 + current server data
+3. Client merges (autoPreserve / chosen strategy)
+4. Client → PUT /todos/123  {merged}  + X-Force-Update: true
+5. Server validates and accepts — or rejects if business rules are violated
+```
+
+The server retains the final say — it can reject a force-update if needed (e.g., no seats left, budget exceeded). But you don't need to write merge logic on the backend — just detect the conflict (`409`) and validate the result.
+
+> **Client-side vs server-side — when to use what:**
+> For most CRUD apps (notes, tasks, CRM, health tracking) client-side resolution is simpler and faster to ship. For financial transactions, bookings, or multi-platform products with 5+ clients — server-side resolution (PowerSync's approach) is more reliable, because only the server knows the full state.
 
 PowerSync documents 7 conflict resolution *patterns*, but they are **design guidelines for your backend code** — the PowerSync SDK itself does not resolve conflicts. Brick has **no** conflict handling at all. Firebase is LWW only.
 
@@ -93,11 +106,14 @@ We believe in honest comparison. Here is where alternatives genuinely win:
 | You need | Use |
 |----------|-----|
 | Smart conflict resolution without writing backend logic | **This library** |
+| CRUD app with one Flutter client, any backend | **This library** |
+| Zero cost, full control, MIT license | **This library** |
+| Financial/booking system where only the server knows the full state | **PowerSync** (server-side resolution) |
 | Managed real-time sync with dashboard and monitoring | **PowerSync** |
+| Multi-platform product (Flutter + React Native + Web) | **PowerSync** (SDKs for all platforms) |
 | Full managed backend (auth, storage, analytics) | **Firebase** |
 | Simple offline cache, no conflict handling needed | **Brick** |
 | P2P sync or mathematical CRDT guarantees | **sql_crdt** |
-| Zero cost, any backend, full control over sync | **This library** |
 
 See [Detailed comparison](#detailed-comparison) at the end for a full feature matrix.
 
