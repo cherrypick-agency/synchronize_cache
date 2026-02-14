@@ -328,27 +328,27 @@ Future<void> enqueue(Op op)
 Adds an operation (upsert or delete) to the `sync_outbox` table. Uses `insertOnConflictUpdate` — re-enqueuing with the same `opId` updates the existing record.
 
 ```dart
-import 'package:uuid/uuid.dart';
-
 // Upsert operation
-await engine.outbox.enqueue(UpsertOp(
-  opId: Uuid().v4(),
-  kind: 'todos',
-  id: todo.id,
-  localTimestamp: DateTime.now(),
-  payloadJson: todo.toJson(),
-  baseUpdatedAt: todo.updatedAt,     // null for a new record
-  changedFields: {'title', 'done'},  // null = all fields
-));
+await engine.outbox.enqueue(
+  UpsertOp.create(
+    kind: 'todos',
+    id: todo.id,
+    localTimestamp: DateTime.now(),
+    payloadJson: todo.toJson(),
+    baseUpdatedAt: todo.updatedAt, // null for a new record
+    changedFields: {'title', 'done'}, // null = all fields
+  ),
+);
 
 // Delete operation
-await engine.outbox.enqueue(DeleteOp(
-  opId: Uuid().v4(),
-  kind: 'todos',
-  id: todo.id,
-  localTimestamp: DateTime.now(),
-  baseUpdatedAt: todo.updatedAt,
-));
+await engine.outbox.enqueue(
+  DeleteOp.create(
+    kind: 'todos',
+    id: todo.id,
+    localTimestamp: DateTime.now(),
+    baseUpdatedAt: todo.updatedAt,
+  ),
+);
 ```
 
 ### `take({int limit = 100})` — Get Operations for Sending
@@ -765,13 +765,14 @@ await engine.sync();
 engine.startAuto(interval: Duration(minutes: 5));
 
 // 7. Application work: adding data
-await engine.outbox.enqueue(UpsertOp(
-  opId: uuid.v4(),
-  kind: 'todos',
-  id: newTodo.id,
-  localTimestamp: DateTime.now(),
-  payloadJson: newTodo.toJson(),
-));
+await engine.outbox.enqueue(
+  UpsertOp.create(
+    kind: 'todos',
+    id: newTodo.id,
+    localTimestamp: DateTime.now(),
+    payloadJson: newTodo.toJson(),
+  ),
+);
 
 // 8. Immediate sync after user action
 await engine.sync();

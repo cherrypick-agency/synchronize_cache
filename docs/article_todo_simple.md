@@ -70,7 +70,7 @@ dependencies:
   offline_first_sync_drift_rest:
     path: ../../../packages/offline_first_sync_drift_rest
   json_annotation: ^4.9.0
-  uuid: ^4.5.2
+  # uuid: ^4.5.2 # optional (only if you generate ids on the client)
   provider: ^6.1.5+1
   http: ^1.2.0
 
@@ -258,7 +258,6 @@ class TodoRepository {
   TodoRepository(this._db);
 
   final AppDatabase _db;
-  final _uuid = const Uuid();
 
   /// Watches all non-deleted todos, ordered by priority and title.
   Stream<List<Todo>> watchAll() {
@@ -273,7 +272,7 @@ class TodoRepository {
 
   /// Creates a new todo.
   ///
-  /// Generates a UUID for the id and enqueues for sync.
+  /// Generates an id and enqueues for sync.
   Future<Todo> create({
     required String title,
     String? description,
@@ -282,7 +281,8 @@ class TodoRepository {
     DateTime? dueDate,
   }) async {
     final now = DateTime.now().toUtc();
-    final id = _uuid.v4();
+    // Any id generator works. For production apps, consider `package:uuid`.
+    final id = 'todo-${now.microsecondsSinceEpoch}';
 
     // Validate priority range (1-5)
     final validPriority = priority.clamp(1, 5);
@@ -297,17 +297,12 @@ class TodoRepository {
       updatedAt: now,
     );
 
-    // Insert into local database
-    await _db.into(_db.todos).insert(todo.toInsertable());
-
-    // Enqueue for sync
-    await _db.enqueue(UpsertOp(
-      opId: _uuid.v4(),
-      kind: 'todos',
-      id: id,
-      localTimestamp: now,
-      payloadJson: todo.toJson(),
-    ));
+    // Insert + enqueue atomically
+    // (todoSyncTable is the shared SyncableTable<Todo> source of truth)
+    await _db
+        .syncWriter()
+        .forTable(todoSyncTable(_db))
+        .insertAndEnqueue(todo, localTimestamp: now);
 
     return todo;
   }
@@ -354,19 +349,13 @@ class TodoRepository {
       updatedAt: now,
     );
 
-    // Update local database
-    await _db.update(_db.todos).replace(updated.toInsertable());
-
-    // Enqueue for sync with changed fields
-    await _db.enqueue(UpsertOp(
-      opId: _uuid.v4(),
-      kind: 'todos',
-      id: todo.id,
-      localTimestamp: now,
-      payloadJson: updated.toJson(),
-      baseUpdatedAt: todo.updatedAt, // For conflict detection
+    // Update + enqueue atomically
+    await _db.syncWriter().forTable(todoSyncTable(_db)).replaceAndEnqueue(
+      updated,
+      baseUpdatedAt: todo.updatedAt,
       changedFields: changedFields.isNotEmpty ? changedFields : null,
-    ));
+      localTimestamp: now,
+    );
 
     return updated;
   }
@@ -388,18 +377,16 @@ During a conflict, the library knows which specific fields the user modified. Th
   Future<void> delete(Todo todo) async {
     final now = DateTime.now().toUtc();
 
-    // Soft delete locally
+    // Soft delete + enqueue atomically
     final deleted = todo.copyWith(deletedAtLocal: now);
-    await _db.update(_db.todos).replace(deleted.toInsertable());
-
-    // Enqueue delete operation
-    await _db.enqueue(DeleteOp(
-      opId: _uuid.v4(),
-      kind: 'todos',
+    await _db.syncWriter().forTable(todoSyncTable(_db)).writeAndEnqueueDelete(
+      localWrite: () async {
+        await _db.update(_db.todos).replace(deleted.toInsertable());
+      },
       id: todo.id,
-      localTimestamp: now,
       baseUpdatedAt: todo.updatedAt,
-    ));
+      localTimestamp: now,
+    );
   }
 ```
 
@@ -434,15 +421,7 @@ class SyncService extends ChangeNotifier {
     _engine = SyncEngine(
       db: db,
       transport: _transport,
-      tables: [
-        SyncableTable<Todo>(
-          kind: 'todos',
-          table: db.todos,
-          fromJson: Todo.fromJson,
-          toJson: (t) => t.toJson(),
-          toInsertable: (t) => t.toInsertable(),
-        ),
-      ],
+      tables: [todoSyncTable(db)],
       config: SyncConfig(
         // Use autoPreserve for simple flow - merges without conflicts
         conflictStrategy: ConflictStrategy.autoPreserve,

@@ -577,13 +577,15 @@ test('sync pushes outbox operations', () async {
   );
 
   // Add an operation to the outbox
-  await db.enqueue(UpsertOp(
-    opId: 'test-op-1',
-    kind: 'test_item',
-    id: 'item-1',
-    localTimestamp: DateTime.now().toUtc(),
-    payloadJson: {'id': 'item-1', 'name': 'Test'},
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'test_item',
+      id: 'item-1',
+      localTimestamp: DateTime.now().toUtc(),
+      payloadJson: {'id': 'item-1', 'name': 'Test'},
+      opId: 'test-op-1',
+    ),
+  );
 
   await engine.sync();
 
@@ -652,13 +654,15 @@ test('sync clears outbox after successful push', () async {
     ],
   );
 
-  await db.enqueue(UpsertOp(
-    opId: 'clear-test-1',
-    kind: 'test_item',
-    id: 'item-1',
-    localTimestamp: DateTime.now().toUtc(),
-    payloadJson: {},
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'test_item',
+      id: 'item-1',
+      localTimestamp: DateTime.now().toUtc(),
+      payloadJson: {},
+      opId: 'clear-test-1',
+    ),
+  );
 
   // Before sync -- outbox has an operation
   expect((await db.takeOutbox()).length, 1);
@@ -748,7 +752,7 @@ test('serverWins accepts server data on conflict', () async {
 
   engine.events.listen(events.add);
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'server-wins-op',
     kind: 'test_item',
     id: 'item-1',
@@ -808,7 +812,7 @@ test('clientWins force pushes client data', () async {
     ),
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'client-wins-op',
     kind: 'test_item',
     id: 'item-2',
@@ -865,7 +869,7 @@ test('lastWriteWins accepts client when local is newer', () async {
   );
 
   final newLocalTime = DateTime.now().toUtc();
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'lww-client-op',
     kind: 'test_item',
     id: 'item-3',
@@ -921,7 +925,7 @@ test('autoPreserve merges and force-pushes', () async {
     ),
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'conflict-op',
     kind: 'test_item',
     id: 'item-1',
@@ -980,7 +984,7 @@ test('merge strategy merges data', () async {
     ),
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'merge-op',
     kind: 'test_item',
     id: 'item-5',
@@ -1040,7 +1044,7 @@ test('manual strategy with resolver', () async {
     ),
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'manual-op',
     kind: 'test_item',
     id: 'item-6',
@@ -1095,7 +1099,7 @@ test('resolver can return DiscardOperation', () async {
 
   engine.events.listen(events.add);
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'discard-op',
     kind: 'test_item',
     id: 'item-8',
@@ -1296,7 +1300,7 @@ test('push emits OperationFailedEvent on PushError', () async {
     ],
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'op-error-1',
     kind: 'test_item',
     id: 'item-1',
@@ -1345,7 +1349,7 @@ test('sync retries push on failure', () async {
     ),
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'op-1',
     kind: 'test_item',
     id: 'item-1',
@@ -1390,7 +1394,7 @@ test('push throws MaxRetriesExceededException after retries exhausted',
     ),
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'op-throw-1',
     kind: 'test_item',
     id: 'item-1',
@@ -1436,7 +1440,7 @@ test('skipConflictingOps removes unresolved conflicts from outbox',
     ),
   );
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'op-conflict-1',
     kind: 'test_item',
     id: 'item-1',
@@ -1462,7 +1466,7 @@ test('skipConflictingOps removes unresolved conflicts from outbox',
 
 ```dart
 test('enqueue UpsertOp', () async {
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'upsert-1',
     kind: 'test_item',
     id: 'item-1',
@@ -1476,7 +1480,7 @@ test('enqueue UpsertOp', () async {
 });
 
 test('enqueue DeleteOp', () async {
-  await db.enqueue(DeleteOp(
+  await db.enqueue(DeleteOp.create(
     opId: 'delete-1',
     kind: 'test_item',
     id: 'item-1',
@@ -1494,7 +1498,7 @@ test('enqueue DeleteOp', () async {
 ```dart
 test('takeOutbox respects limit', () async {
   for (var i = 0; i < 10; i++) {
-    await db.enqueue(UpsertOp(
+    await db.enqueue(UpsertOp.create(
       opId: 'limit-$i',
       kind: 'test_item',
       id: 'item-$i',
@@ -1512,14 +1516,14 @@ test('takeOutbox respects limit', () async {
 
 ```dart
 test('ackOutbox removes operations', () async {
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'ack-1',
     kind: 'test_item',
     id: 'item-1',
     localTimestamp: DateTime.now().toUtc(),
     payloadJson: {},
   ));
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'ack-2',
     kind: 'test_item',
     id: 'item-2',
@@ -1544,21 +1548,21 @@ test('outbox ordering by timestamp', () async {
   final time3 = DateTime.now().toUtc();
 
   // Add in reverse order
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'order-op-3',
     kind: 'test_item',
     id: 'item-3',
     localTimestamp: time3,
     payloadJson: {},
   ));
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'order-op-1',
     kind: 'test_item',
     id: 'item-1',
     localTimestamp: time1,
     payloadJson: {},
   ));
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'order-op-2',
     kind: 'test_item',
     id: 'item-2',
@@ -1581,7 +1585,7 @@ test('purgeOlderThan removes old operations', () async {
   final oldTime = DateTime.now().subtract(const Duration(days: 30)).toUtc();
   final newTime = DateTime.now().toUtc();
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'old-op',
     kind: 'test_item',
     id: 'item-1',
@@ -1589,7 +1593,7 @@ test('purgeOlderThan removes old operations', () async {
     payloadJson: {},
   ));
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'new-op',
     kind: 'test_item',
     id: 'item-2',
@@ -1622,7 +1626,7 @@ test('hasOperations returns false when empty', () async {
 test('hasOperations returns true when not empty', () async {
   final outboxService = OutboxService(db);
 
-  await outboxService.enqueue(UpsertOp(
+  await outboxService.enqueue(UpsertOp.create(
     opId: 'has-ops-test',
     kind: 'test_item',
     id: 'item-1',
@@ -1641,7 +1645,7 @@ test('hasOperations returns true when not empty', () async {
 test('enqueue preserves baseUpdatedAt', () async {
   final baseTime = DateTime(2024, 1, 1, 12, 0, 0).toUtc();
 
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'base-test',
     kind: 'test_item',
     id: 'item-1',
@@ -1657,7 +1661,7 @@ test('enqueue preserves baseUpdatedAt', () async {
 });
 
 test('isNewRecord returns true when baseUpdatedAt is null', () async {
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'new-record',
     kind: 'test_item',
     id: 'item-1',
@@ -1830,7 +1834,7 @@ test('full sync cycle: enqueue, push, pull, verify', () async {
   );
 
   // 1. Add a local operation
-  await db.enqueue(UpsertOp(
+  await db.enqueue(UpsertOp.create(
     opId: 'local-op-1',
     kind: 'test_item',
     id: 'local-item',
@@ -2240,7 +2244,7 @@ void main() {
       final transport = MockTransport();
       final engine = createEngine(transport);
 
-      await db.enqueue(UpsertOp(
+      await db.enqueue(UpsertOp.create(
         opId: 'op-1',
         kind: 'test_item',
         id: 'item-1',
@@ -2278,7 +2282,7 @@ void main() {
       final transport = MockTransport();
       final engine = createEngine(transport);
 
-      await db.enqueue(UpsertOp(
+      await db.enqueue(UpsertOp.create(
         opId: 'op-1',
         kind: 'test_item',
         id: 'item-1',
@@ -2314,7 +2318,7 @@ void main() {
 
   group('Outbox', () {
     test('enqueue and takeOutbox work correctly', () async {
-      await db.enqueue(UpsertOp(
+      await db.enqueue(UpsertOp.create(
         opId: 'op-1',
         kind: 'test_item',
         id: 'item-1',

@@ -472,7 +472,7 @@ User deletes a record locally
 Set deletedAtLocal = DateTime.now()
         │
         ▼
-OutboxService.enqueue(DeleteOp(...))
+OutboxService.enqueue(DeleteOp.create(...))
         │
         ▼ (on sync)
 PushService → TransportAdapter.push()

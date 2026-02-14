@@ -86,13 +86,15 @@ Future<void> main() async {
   stdout.writeln('Record added: ${feeling.id}');
 
   // Add operation to outbox for sync
-  await db.enqueue(UpsertOp(
-    opId: 'op-${DateTime.now().millisecondsSinceEpoch}',
-    kind: 'daily_feeling',
-    id: feeling.id,
-    localTimestamp: DateTime.now().toUtc(),
-    payloadJson: feeling.toJson(),
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'daily_feeling',
+      id: feeling.id,
+      payloadJson: feeling.toJson(),
+      opId: 'op-${DateTime.now().millisecondsSinceEpoch}',
+      localTimestamp: DateTime.now().toUtc(),
+    ),
+  );
   stdout.writeln('Operation added to outbox');
 
   // Read all records

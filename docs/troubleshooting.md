@@ -69,13 +69,12 @@ select(todos).get();
 **Cause 1:** Incorrect `baseUpdatedAt`. This is the record's timestamp at the last known state. The server compares it with the current `updatedAt` and returns 409 on mismatch.
 
 ```dart
-final op = UpsertOp(
-  opId: uuid.v4(),
+final op = UpsertOp.create(
   kind: 'todos',
   id: todo.id,
   localTimestamp: DateTime.now().toUtc(),
   payloadJson: todo.toJson(),
-  baseUpdatedAt: todo.updatedAt,  // current updatedAt from local DB
+  baseUpdatedAt: todo.updatedAt, // current updatedAt from local DB
 );
 ```
 

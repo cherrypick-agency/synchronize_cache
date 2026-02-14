@@ -146,13 +146,15 @@ Future<void> main() async {
   print('Created todo: ${todo.id}');
 
   // Add to outbox for sync
-  await db.enqueue(UpsertOp(
-    opId: 'op-1',
-    kind: 'todo',
-    id: todo.id,
-    localTimestamp: DateTime.now().toUtc(),
-    payloadJson: todo.toJson(),
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'todo',
+      id: todo.id,
+      payloadJson: todo.toJson(),
+      opId: 'op-1',
+      localTimestamp: DateTime.now().toUtc(),
+    ),
+  );
   print('Added to outbox');
 
   // Sync

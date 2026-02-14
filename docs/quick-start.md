@@ -168,10 +168,9 @@ final stream = (db.select(db.todos)
 Insert a record into the DB and enqueue an `UpsertOp`:
 
 ```dart
-import 'package:uuid/uuid.dart';
-
-final todoId = const Uuid().v4();
 final now = DateTime.now().toUtc();
+// Any id generator works. For production apps, consider `package:uuid`.
+final todoId = 'todo-${now.microsecondsSinceEpoch}';
 
 await db.into(db.todos).insert(
   TodosCompanion.insert(
@@ -331,7 +330,6 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:offline_first_sync_drift/offline_first_sync_drift.dart';
 import 'package:offline_first_sync_drift_rest/offline_first_sync_drift_rest.dart';
-import 'package:uuid/uuid.dart';
 
 part 'main.g.dart';
 
@@ -385,9 +383,9 @@ Future<void> main() async {
   engine.events.listen((e) => print(e));
 
   // 6. Creating a record
-  const uuid = Uuid();
-  final todoId = uuid.v4();
   final now = DateTime.now().toUtc();
+  // Any id generator works. For production apps, consider `package:uuid`.
+  final todoId = 'todo-${now.microsecondsSinceEpoch}';
 
   await db.into(db.todos).insert(
     TodosCompanion.insert(
@@ -397,17 +395,18 @@ Future<void> main() async {
     ),
   );
 
-  await db.enqueue(UpsertOp(
-    opId: uuid.v4(),
-    kind: 'todos',
-    id: todoId,
-    localTimestamp: now,
-    payloadJson: {
-      'id': todoId,
-      'title': 'Buy milk',
-      'completed': false,
-    },
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'todos',
+      id: todoId,
+      localTimestamp: now,
+      payloadJson: {
+        'id': todoId,
+        'title': 'Buy milk',
+        'completed': false,
+      },
+    ),
+  );
 
   // 7. Sync
   final stats = await engine.sync();

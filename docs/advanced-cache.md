@@ -154,8 +154,7 @@ The key to smart merging is the `changedFields` field in `UpsertOp`. It indicate
 When creating an operation in the outbox, you can specify which fields were changed:
 
 ```dart
-final op = UpsertOp(
-  opId: uuid.v4(),
+final op = UpsertOp.create(
   kind: 'todos',
   id: todo.id,
   localTimestamp: DateTime.now().toUtc(),
@@ -697,15 +696,16 @@ Future<void> updateTodoTitle(Todo todo, String newTitle) async {
   );
 
   // Add to outbox with changedFields
-  await engine.outbox.enqueue(UpsertOp(
-    opId: uuid.v4(),
-    kind: 'todos',
-    id: todo.id,
-    localTimestamp: DateTime.now().toUtc(),
-    payloadJson: updated.toJson(),
-    baseUpdatedAt: todo.updatedAt,
-    changedFields: {'title'}, // Only title changed
-  ));
+  await engine.outbox.enqueue(
+    UpsertOp.create(
+      kind: 'todos',
+      id: todo.id,
+      localTimestamp: DateTime.now().toUtc(),
+      payloadJson: updated.toJson(),
+      baseUpdatedAt: todo.updatedAt,
+      changedFields: {'title'}, // Only title changed
+    ),
+  );
 }
 
 // 5. Sync with error handling

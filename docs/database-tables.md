@@ -58,24 +58,30 @@ class AppDatabase extends _$AppDatabase with SyncDatabaseMixin {
 final db = AppDatabase(executor);
 
 // Upsert operation
-await db.enqueue(UpsertOp(
-  opId: 'op-uuid-1',
-  kind: 'todos',
-  id: 'todo-1',
-  localTimestamp: DateTime.now().toUtc(),
-  payloadJson: {'id': 'todo-1', 'title': 'Buy milk', 'completed': false},
-  baseUpdatedAt: existingTodo.updatedAt, // null for a new record
-  changedFields: {'title', 'completed'},
-));
+await db.enqueue(
+  UpsertOp.create(
+    kind: 'todos',
+    id: 'todo-1',
+    payloadJson: {'id': 'todo-1', 'title': 'Buy milk', 'completed': false},
+    baseUpdatedAt: existingTodo.updatedAt, // null for a new record
+    changedFields: {'title', 'completed'},
+    // Optional overrides:
+    opId: 'op-uuid-1',
+    localTimestamp: DateTime.now().toUtc(),
+  ),
+);
 
 // Delete operation
-await db.enqueue(DeleteOp(
-  opId: 'op-uuid-2',
-  kind: 'todos',
-  id: 'todo-1',
-  localTimestamp: DateTime.now().toUtc(),
-  baseUpdatedAt: existingTodo.updatedAt,
-));
+await db.enqueue(
+  DeleteOp.create(
+    kind: 'todos',
+    id: 'todo-1',
+    baseUpdatedAt: existingTodo.updatedAt,
+    // Optional overrides:
+    opId: 'op-uuid-2',
+    localTimestamp: DateTime.now().toUtc(),
+  ),
+);
 ```
 
 ---
@@ -856,13 +862,15 @@ final todo = Todo(
 
 await db.into(db.todos).insert(todo.toInsertable());
 
-await db.enqueue(UpsertOp(
-  opId: 'op-1',
-  kind: 'todos',
-  id: todo.id,
-  localTimestamp: DateTime.now().toUtc(),
-  payloadJson: todo.toJson(),
-));
+await db.enqueue(
+  UpsertOp.create(
+    kind: 'todos',
+    id: todo.id,
+    localTimestamp: DateTime.now().toUtc(),
+    payloadJson: todo.toJson(),
+    opId: 'op-1',
+  ),
+);
 
 // Synchronization
 final stats = await engine.sync();

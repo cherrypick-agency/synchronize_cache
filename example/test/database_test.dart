@@ -101,7 +101,7 @@ void main() {
 
   group('SyncDatabaseMixin', () {
     test('enqueue UpsertOp', () async {
-      final op = UpsertOp(
+      final op = UpsertOp.create(
         opId: 'op-1',
         kind: 'daily_feeling',
         id: 'df-1',
@@ -119,7 +119,7 @@ void main() {
     });
 
     test('enqueue DeleteOp', () async {
-      final op = DeleteOp(
+      final op = DeleteOp.create(
         opId: 'op-delete-1',
         kind: 'daily_feeling',
         id: 'df-1',
@@ -134,20 +134,24 @@ void main() {
     });
 
     test('ackOutbox removes operations', () async {
-      await db.enqueue(UpsertOp(
-        opId: 'op-ack-1',
-        kind: 'test',
-        id: 'id-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {},
-      ));
-      await db.enqueue(UpsertOp(
-        opId: 'op-ack-2',
-        kind: 'test',
-        id: 'id-2',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {},
-      ));
+      await db.enqueue(
+        UpsertOp.create(
+          opId: 'op-ack-1',
+          kind: 'test',
+          id: 'id-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {},
+        ),
+      );
+      await db.enqueue(
+        UpsertOp.create(
+          opId: 'op-ack-2',
+          kind: 'test',
+          id: 'id-2',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {},
+        ),
+      );
 
       expect((await db.takeOutbox()).length, 2);
 
@@ -177,13 +181,15 @@ void main() {
 
     test('takeOutbox respects limit', () async {
       for (var i = 0; i < 10; i++) {
-        await db.enqueue(UpsertOp(
-          opId: 'op-limit-$i',
-          kind: 'test',
-          id: 'id-$i',
-          localTimestamp: DateTime.now().toUtc(),
-          payloadJson: {},
-        ));
+        await db.enqueue(
+          UpsertOp.create(
+            opId: 'op-limit-$i',
+            kind: 'test',
+            id: 'id-$i',
+            localTimestamp: DateTime.now().toUtc(),
+            payloadJson: {},
+          ),
+        );
       }
 
       final ops = await db.takeOutbox(limit: 3);

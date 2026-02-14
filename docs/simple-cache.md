@@ -42,7 +42,7 @@ dependencies:
   drift_flutter: ^0.2.4
   offline_first_sync_drift: ^0.1.2
   offline_first_sync_drift_rest: ^0.1.2
-  uuid: ^4.5.1
+  # uuid: ^4.5.1 # optional (only if you generate ids on the client)
 
 dev_dependencies:
   drift_dev: ^2.26.1
@@ -268,7 +268,8 @@ Insert into the local DB and add the operation to the outbox:
 ```dart
 Future<Todo> create({required String title, String? description}) async {
   final now = DateTime.now().toUtc();
-  final id = const Uuid().v4();
+  // Any id generator works. For production apps, consider `package:uuid`.
+  final id = 'todo-${now.microsecondsSinceEpoch}';
 
   final todo = Todo(
     id: id,
@@ -281,14 +282,15 @@ Future<Todo> create({required String title, String? description}) async {
   await db.into(db.todos).insert(todo.toInsertable());
 
   // 2. Enqueue for sync
-  await db.enqueue(UpsertOp(
-    opId: const Uuid().v4(),
-    kind: 'todos',
-    id: id,
-    localTimestamp: now,
-    payloadJson: todo.toJson(),
-    // baseUpdatedAt: null -- new record, no conflicts possible
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'todos',
+      id: id,
+      localTimestamp: now,
+      payloadJson: todo.toJson(),
+      // baseUpdatedAt: null -- new record, no conflicts possible
+    ),
+  );
 
   return todo;
 }
@@ -312,14 +314,15 @@ Future<Todo> update(Todo todo, {String? title, bool? completed}) async {
   await db.update(db.todos).replace(updated.toInsertable());
 
   // 2. Enqueue
-  await db.enqueue(UpsertOp(
-    opId: const Uuid().v4(),
-    kind: 'todos',
-    id: todo.id,
-    localTimestamp: now,
-    payloadJson: updated.toJson(),
-    baseUpdatedAt: todo.updatedAt, // for conflict detection
-  ));
+  await db.enqueue(
+    UpsertOp.create(
+      kind: 'todos',
+      id: todo.id,
+      localTimestamp: now,
+      payloadJson: updated.toJson(),
+      baseUpdatedAt: todo.updatedAt, // for conflict detection
+    ),
+  );
 
   return updated;
 }
@@ -338,13 +341,14 @@ Future<void> delete(Todo todo) async {
   await db.update(db.todos).replace(deleted.toInsertable());
 
   // 2. Enqueue
-  await db.enqueue(DeleteOp(
-    opId: const Uuid().v4(),
-    kind: 'todos',
-    id: todo.id,
-    localTimestamp: now,
-    baseUpdatedAt: todo.updatedAt,
-  ));
+  await db.enqueue(
+    DeleteOp.create(
+      kind: 'todos',
+      id: todo.id,
+      localTimestamp: now,
+      baseUpdatedAt: todo.updatedAt,
+    ),
+  );
 }
 ```
 
