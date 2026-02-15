@@ -5,31 +5,34 @@ import 'package:offline_first_sync_drift/src/tables/cursors.drift.dart' as i1;
 import 'package:offline_first_sync_drift/src/tables/outbox_meta.drift.dart'
     as i2;
 import 'package:offline_first_sync_drift/src/tables/outbox.drift.dart' as i3;
-import 'sync_engine_test.drift.dart' as i4;
-import 'sync_engine_test.dart' as i5;
+import 'example.drift.dart' as i4;
+import 'example.dart' as i5;
+import 'package:drift/src/runtime/query_builder/query_builder.dart' as i6;
 
-typedef $$TestItemsTableCreateCompanionBuilder =
-    i4.TestItemsCompanion Function({
+typedef $$TodosTableCreateCompanionBuilder =
+    i4.TodosCompanion Function({
       required DateTime updatedAt,
       i0.Value<DateTime?> deletedAt,
       i0.Value<DateTime?> deletedAtLocal,
       required String id,
-      required String name,
+      required String title,
+      i0.Value<bool> completed,
       i0.Value<int> rowid,
     });
-typedef $$TestItemsTableUpdateCompanionBuilder =
-    i4.TestItemsCompanion Function({
+typedef $$TodosTableUpdateCompanionBuilder =
+    i4.TodosCompanion Function({
       i0.Value<DateTime> updatedAt,
       i0.Value<DateTime?> deletedAt,
       i0.Value<DateTime?> deletedAtLocal,
       i0.Value<String> id,
-      i0.Value<String> name,
+      i0.Value<String> title,
+      i0.Value<bool> completed,
       i0.Value<int> rowid,
     });
 
-class $$TestItemsTableFilterComposer
-    extends i0.Composer<i0.GeneratedDatabase, i4.$TestItemsTable> {
-  $$TestItemsTableFilterComposer({
+class $$TodosTableFilterComposer
+    extends i0.Composer<i0.GeneratedDatabase, i4.$TodosTable> {
+  $$TodosTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -56,15 +59,20 @@ class $$TestItemsTableFilterComposer
     builder: (column) => i0.ColumnFilters(column),
   );
 
-  i0.ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
+  i0.ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => i0.ColumnFilters(column),
+  );
+
+  i0.ColumnFilters<bool> get completed => $composableBuilder(
+    column: $table.completed,
     builder: (column) => i0.ColumnFilters(column),
   );
 }
 
-class $$TestItemsTableOrderingComposer
-    extends i0.Composer<i0.GeneratedDatabase, i4.$TestItemsTable> {
-  $$TestItemsTableOrderingComposer({
+class $$TodosTableOrderingComposer
+    extends i0.Composer<i0.GeneratedDatabase, i4.$TodosTable> {
+  $$TodosTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -91,15 +99,20 @@ class $$TestItemsTableOrderingComposer
     builder: (column) => i0.ColumnOrderings(column),
   );
 
-  i0.ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
+  i0.ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => i0.ColumnOrderings(column),
+  );
+
+  i0.ColumnOrderings<bool> get completed => $composableBuilder(
+    column: $table.completed,
     builder: (column) => i0.ColumnOrderings(column),
   );
 }
 
-class $$TestItemsTableAnnotationComposer
-    extends i0.Composer<i0.GeneratedDatabase, i4.$TestItemsTable> {
-  $$TestItemsTableAnnotationComposer({
+class $$TodosTableAnnotationComposer
+    extends i0.Composer<i0.GeneratedDatabase, i4.$TodosTable> {
+  $$TodosTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -120,60 +133,58 @@ class $$TestItemsTableAnnotationComposer
   i0.GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  i0.GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
+  i0.GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  i0.GeneratedColumn<bool> get completed =>
+      $composableBuilder(column: $table.completed, builder: (column) => column);
 }
 
-class $$TestItemsTableTableManager
+class $$TodosTableTableManager
     extends
         i0.RootTableManager<
           i0.GeneratedDatabase,
-          i4.$TestItemsTable,
-          i5.TestItem,
-          i4.$$TestItemsTableFilterComposer,
-          i4.$$TestItemsTableOrderingComposer,
-          i4.$$TestItemsTableAnnotationComposer,
-          $$TestItemsTableCreateCompanionBuilder,
-          $$TestItemsTableUpdateCompanionBuilder,
+          i4.$TodosTable,
+          i5.Todo,
+          i4.$$TodosTableFilterComposer,
+          i4.$$TodosTableOrderingComposer,
+          i4.$$TodosTableAnnotationComposer,
+          $$TodosTableCreateCompanionBuilder,
+          $$TodosTableUpdateCompanionBuilder,
           (
-            i5.TestItem,
-            i0.BaseReferences<
-              i0.GeneratedDatabase,
-              i4.$TestItemsTable,
-              i5.TestItem
-            >,
+            i5.Todo,
+            i0.BaseReferences<i0.GeneratedDatabase, i4.$TodosTable, i5.Todo>,
           ),
-          i5.TestItem,
+          i5.Todo,
           i0.PrefetchHooks Function()
         > {
-  $$TestItemsTableTableManager(
-    i0.GeneratedDatabase db,
-    i4.$TestItemsTable table,
-  ) : super(
+  $$TodosTableTableManager(i0.GeneratedDatabase db, i4.$TodosTable table)
+    : super(
         i0.TableManagerState(
           db: db,
           table: table,
           createFilteringComposer:
-              () => i4.$$TestItemsTableFilterComposer($db: db, $table: table),
+              () => i4.$$TodosTableFilterComposer($db: db, $table: table),
           createOrderingComposer:
-              () => i4.$$TestItemsTableOrderingComposer($db: db, $table: table),
+              () => i4.$$TodosTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer:
-              () =>
-                  i4.$$TestItemsTableAnnotationComposer($db: db, $table: table),
+              () => i4.$$TodosTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 i0.Value<DateTime> updatedAt = const i0.Value.absent(),
                 i0.Value<DateTime?> deletedAt = const i0.Value.absent(),
                 i0.Value<DateTime?> deletedAtLocal = const i0.Value.absent(),
                 i0.Value<String> id = const i0.Value.absent(),
-                i0.Value<String> name = const i0.Value.absent(),
+                i0.Value<String> title = const i0.Value.absent(),
+                i0.Value<bool> completed = const i0.Value.absent(),
                 i0.Value<int> rowid = const i0.Value.absent(),
-              }) => i4.TestItemsCompanion(
+              }) => i4.TodosCompanion(
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deletedAtLocal: deletedAtLocal,
                 id: id,
-                name: name,
+                title: title,
+                completed: completed,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -182,14 +193,16 @@ class $$TestItemsTableTableManager
                 i0.Value<DateTime?> deletedAt = const i0.Value.absent(),
                 i0.Value<DateTime?> deletedAtLocal = const i0.Value.absent(),
                 required String id,
-                required String name,
+                required String title,
+                i0.Value<bool> completed = const i0.Value.absent(),
                 i0.Value<int> rowid = const i0.Value.absent(),
-              }) => i4.TestItemsCompanion.insert(
+              }) => i4.TodosCompanion.insert(
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deletedAtLocal: deletedAtLocal,
                 id: id,
-                name: name,
+                title: title,
+                completed: completed,
                 rowid: rowid,
               ),
           withReferenceMapper:
@@ -207,37 +220,33 @@ class $$TestItemsTableTableManager
       );
 }
 
-typedef $$TestItemsTableProcessedTableManager =
+typedef $$TodosTableProcessedTableManager =
     i0.ProcessedTableManager<
       i0.GeneratedDatabase,
-      i4.$TestItemsTable,
-      i5.TestItem,
-      i4.$$TestItemsTableFilterComposer,
-      i4.$$TestItemsTableOrderingComposer,
-      i4.$$TestItemsTableAnnotationComposer,
-      $$TestItemsTableCreateCompanionBuilder,
-      $$TestItemsTableUpdateCompanionBuilder,
+      i4.$TodosTable,
+      i5.Todo,
+      i4.$$TodosTableFilterComposer,
+      i4.$$TodosTableOrderingComposer,
+      i4.$$TodosTableAnnotationComposer,
+      $$TodosTableCreateCompanionBuilder,
+      $$TodosTableUpdateCompanionBuilder,
       (
-        i5.TestItem,
-        i0.BaseReferences<
-          i0.GeneratedDatabase,
-          i4.$TestItemsTable,
-          i5.TestItem
-        >,
+        i5.Todo,
+        i0.BaseReferences<i0.GeneratedDatabase, i4.$TodosTable, i5.Todo>,
       ),
-      i5.TestItem,
+      i5.Todo,
       i0.PrefetchHooks Function()
     >;
 
-abstract class $TestDatabase extends i0.GeneratedDatabase {
-  $TestDatabase(i0.QueryExecutor e) : super(e);
-  $TestDatabaseManager get managers => $TestDatabaseManager(this);
+abstract class $AppDatabase extends i0.GeneratedDatabase {
+  $AppDatabase(i0.QueryExecutor e) : super(e);
+  $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final i1.$SyncCursorsTable syncCursors = i1.$SyncCursorsTable(this);
   late final i2.$SyncOutboxMetaTable syncOutboxMeta = i2.$SyncOutboxMetaTable(
     this,
   );
   late final i3.$SyncOutboxTable syncOutbox = i3.$SyncOutboxTable(this);
-  late final i4.$TestItemsTable testItems = i4.$TestItemsTable(this);
+  late final i4.$TodosTable todos = i4.$TodosTable(this);
   @override
   Iterable<i0.TableInfo<i0.Table, Object?>> get allTables =>
       allSchemaEntities.whereType<i0.TableInfo<i0.Table, Object?>>();
@@ -246,32 +255,31 @@ abstract class $TestDatabase extends i0.GeneratedDatabase {
     syncCursors,
     syncOutboxMeta,
     syncOutbox,
-    testItems,
+    todos,
   ];
   @override
   i0.DriftDatabaseOptions get options =>
       const i0.DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
-class $TestDatabaseManager {
-  final $TestDatabase _db;
-  $TestDatabaseManager(this._db);
+class $AppDatabaseManager {
+  final $AppDatabase _db;
+  $AppDatabaseManager(this._db);
   i1.$$SyncCursorsTableTableManager get syncCursors =>
       i1.$$SyncCursorsTableTableManager(_db, _db.syncCursors);
   i2.$$SyncOutboxMetaTableTableManager get syncOutboxMeta =>
       i2.$$SyncOutboxMetaTableTableManager(_db, _db.syncOutboxMeta);
   i3.$$SyncOutboxTableTableManager get syncOutbox =>
       i3.$$SyncOutboxTableTableManager(_db, _db.syncOutbox);
-  i4.$$TestItemsTableTableManager get testItems =>
-      i4.$$TestItemsTableTableManager(_db, _db.testItems);
+  i4.$$TodosTableTableManager get todos =>
+      i4.$$TodosTableTableManager(_db, _db.todos);
 }
 
-class $TestItemsTable extends i5.TestItems
-    with i0.TableInfo<$TestItemsTable, i5.TestItem> {
+class $TodosTable extends i5.Todos with i0.TableInfo<$TodosTable, i5.Todo> {
   @override
   final i0.GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $TestItemsTable(this.attachedDatabase, [this._alias]);
+  $TodosTable(this.attachedDatabase, [this._alias]);
   static const i0.VerificationMeta _updatedAtMeta = const i0.VerificationMeta(
     'updatedAt',
   );
@@ -316,16 +324,31 @@ class $TestItemsTable extends i5.TestItems
     type: i0.DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const i0.VerificationMeta _nameMeta = const i0.VerificationMeta(
-    'name',
+  static const i0.VerificationMeta _titleMeta = const i0.VerificationMeta(
+    'title',
   );
   @override
-  late final i0.GeneratedColumn<String> name = i0.GeneratedColumn<String>(
-    'name',
+  late final i0.GeneratedColumn<String> title = i0.GeneratedColumn<String>(
+    'title',
     aliasedName,
     false,
     type: i0.DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const i0.VerificationMeta _completedMeta = const i0.VerificationMeta(
+    'completed',
+  );
+  @override
+  late final i0.GeneratedColumn<bool> completed = i0.GeneratedColumn<bool>(
+    'completed',
+    aliasedName,
+    false,
+    type: i0.DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: i0.GeneratedColumn.constraintIsAlways(
+      'CHECK ("completed" IN (0, 1))',
+    ),
+    defaultValue: const i6.Constant(false),
   );
   @override
   List<i0.GeneratedColumn> get $columns => [
@@ -333,16 +356,17 @@ class $TestItemsTable extends i5.TestItems
     deletedAt,
     deletedAtLocal,
     id,
-    name,
+    title,
+    completed,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'test_items';
+  static const String $name = 'todos';
   @override
   i0.VerificationContext validateIntegrity(
-    i0.Insertable<i5.TestItem> instance, {
+    i0.Insertable<i5.Todo> instance, {
     bool isInserting = false,
   }) {
     final context = i0.VerificationContext();
@@ -375,13 +399,19 @@ class $TestItemsTable extends i5.TestItems
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('name')) {
+    if (data.containsKey('title')) {
       context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
       );
     } else if (isInserting) {
-      context.missing(_nameMeta);
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('completed')) {
+      context.handle(
+        _completedMeta,
+        completed.isAcceptableOrUnknown(data['completed']!, _completedMeta),
+      );
     }
     return context;
   }
@@ -389,13 +419,23 @@ class $TestItemsTable extends i5.TestItems
   @override
   Set<i0.GeneratedColumn> get $primaryKey => {id};
   @override
-  i5.TestItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+  i5.Todo map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return i5.TestItem(
+    return i5.Todo(
       id:
           attachedDatabase.typeMapping.read(
             i0.DriftSqlType.string,
             data['${effectivePrefix}id'],
+          )!,
+      title:
+          attachedDatabase.typeMapping.read(
+            i0.DriftSqlType.string,
+            data['${effectivePrefix}title'],
+          )!,
+      completed:
+          attachedDatabase.typeMapping.read(
+            i0.DriftSqlType.bool,
+            data['${effectivePrefix}completed'],
           )!,
       updatedAt:
           attachedDatabase.typeMapping.read(
@@ -410,51 +450,50 @@ class $TestItemsTable extends i5.TestItems
         i0.DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at_local'],
       ),
-      name:
-          attachedDatabase.typeMapping.read(
-            i0.DriftSqlType.string,
-            data['${effectivePrefix}name'],
-          )!,
     );
   }
 
   @override
-  $TestItemsTable createAlias(String alias) {
-    return $TestItemsTable(attachedDatabase, alias);
+  $TodosTable createAlias(String alias) {
+    return $TodosTable(attachedDatabase, alias);
   }
 }
 
-class TestItemsCompanion extends i0.UpdateCompanion<i5.TestItem> {
+class TodosCompanion extends i0.UpdateCompanion<i5.Todo> {
   final i0.Value<DateTime> updatedAt;
   final i0.Value<DateTime?> deletedAt;
   final i0.Value<DateTime?> deletedAtLocal;
   final i0.Value<String> id;
-  final i0.Value<String> name;
+  final i0.Value<String> title;
+  final i0.Value<bool> completed;
   final i0.Value<int> rowid;
-  const TestItemsCompanion({
+  const TodosCompanion({
     this.updatedAt = const i0.Value.absent(),
     this.deletedAt = const i0.Value.absent(),
     this.deletedAtLocal = const i0.Value.absent(),
     this.id = const i0.Value.absent(),
-    this.name = const i0.Value.absent(),
+    this.title = const i0.Value.absent(),
+    this.completed = const i0.Value.absent(),
     this.rowid = const i0.Value.absent(),
   });
-  TestItemsCompanion.insert({
+  TodosCompanion.insert({
     required DateTime updatedAt,
     this.deletedAt = const i0.Value.absent(),
     this.deletedAtLocal = const i0.Value.absent(),
     required String id,
-    required String name,
+    required String title,
+    this.completed = const i0.Value.absent(),
     this.rowid = const i0.Value.absent(),
   }) : updatedAt = i0.Value(updatedAt),
        id = i0.Value(id),
-       name = i0.Value(name);
-  static i0.Insertable<i5.TestItem> custom({
+       title = i0.Value(title);
+  static i0.Insertable<i5.Todo> custom({
     i0.Expression<DateTime>? updatedAt,
     i0.Expression<DateTime>? deletedAt,
     i0.Expression<DateTime>? deletedAtLocal,
     i0.Expression<String>? id,
-    i0.Expression<String>? name,
+    i0.Expression<String>? title,
+    i0.Expression<bool>? completed,
     i0.Expression<int>? rowid,
   }) {
     return i0.RawValuesInsertable({
@@ -462,25 +501,28 @@ class TestItemsCompanion extends i0.UpdateCompanion<i5.TestItem> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deletedAtLocal != null) 'deleted_at_local': deletedAtLocal,
       if (id != null) 'id': id,
-      if (name != null) 'name': name,
+      if (title != null) 'title': title,
+      if (completed != null) 'completed': completed,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
-  i4.TestItemsCompanion copyWith({
+  i4.TodosCompanion copyWith({
     i0.Value<DateTime>? updatedAt,
     i0.Value<DateTime?>? deletedAt,
     i0.Value<DateTime?>? deletedAtLocal,
     i0.Value<String>? id,
-    i0.Value<String>? name,
+    i0.Value<String>? title,
+    i0.Value<bool>? completed,
     i0.Value<int>? rowid,
   }) {
-    return i4.TestItemsCompanion(
+    return i4.TodosCompanion(
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deletedAtLocal: deletedAtLocal ?? this.deletedAtLocal,
       id: id ?? this.id,
-      name: name ?? this.name,
+      title: title ?? this.title,
+      completed: completed ?? this.completed,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -500,8 +542,11 @@ class TestItemsCompanion extends i0.UpdateCompanion<i5.TestItem> {
     if (id.present) {
       map['id'] = i0.Variable<String>(id.value);
     }
-    if (name.present) {
-      map['name'] = i0.Variable<String>(name.value);
+    if (title.present) {
+      map['title'] = i0.Variable<String>(title.value);
+    }
+    if (completed.present) {
+      map['completed'] = i0.Variable<bool>(completed.value);
     }
     if (rowid.present) {
       map['rowid'] = i0.Variable<int>(rowid.value);
@@ -511,35 +556,37 @@ class TestItemsCompanion extends i0.UpdateCompanion<i5.TestItem> {
 
   @override
   String toString() {
-    return (StringBuffer('TestItemsCompanion(')
+    return (StringBuffer('TodosCompanion(')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deletedAtLocal: $deletedAtLocal, ')
           ..write('id: $id, ')
-          ..write('name: $name, ')
+          ..write('title: $title, ')
+          ..write('completed: $completed, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
 }
 
-class _$TestItemInsertable implements i0.Insertable<i5.TestItem> {
-  i5.TestItem _object;
-  _$TestItemInsertable(this._object);
+class _$TodoInsertable implements i0.Insertable<i5.Todo> {
+  i5.Todo _object;
+  _$TodoInsertable(this._object);
   @override
   Map<String, i0.Expression> toColumns(bool nullToAbsent) {
-    return i4.TestItemsCompanion(
+    return i4.TodosCompanion(
       updatedAt: i0.Value(_object.updatedAt),
       deletedAt: i0.Value(_object.deletedAt),
       deletedAtLocal: i0.Value(_object.deletedAtLocal),
       id: i0.Value(_object.id),
-      name: i0.Value(_object.name),
+      title: i0.Value(_object.title),
+      completed: i0.Value(_object.completed),
     ).toColumns(false);
   }
 }
 
-extension TestItemToInsertable on i5.TestItem {
-  _$TestItemInsertable toInsertable() {
-    return _$TestItemInsertable(this);
+extension TodoToInsertable on i5.Todo {
+  _$TodoInsertable toInsertable() {
+    return _$TodoInsertable(this);
   }
 }

@@ -4,6 +4,8 @@
 export 'src/tables/sync_columns.dart';
 export 'src/tables/outbox.dart' show SyncOutbox;
 export 'src/tables/outbox.drift.dart' show SyncOutboxCompanion;
+export 'src/tables/outbox_meta.dart' show SyncOutboxMeta;
+export 'src/tables/outbox_meta.drift.dart' show SyncOutboxMetaCompanion;
 export 'src/tables/cursors.dart' show SyncCursors;
 export 'src/tables/cursors.drift.dart' show SyncCursorsCompanion;
 export 'src/tables/sync_data_classes.dart';
@@ -16,6 +18,7 @@ export 'src/cursor.dart';
 export 'src/config.dart';
 export 'src/conflict_resolution.dart';
 export 'src/sync_events.dart';
+export 'src/sync_error.dart';
 export 'src/syncable_table.dart';
 export 'src/transport_adapter.dart';
 export 'src/changed_fields.dart';
@@ -33,3 +36,4 @@ export 'src/services/pull_service.dart';
 // Core
 export 'src/sync_database.dart';
 export 'src/sync_engine.dart';
+export 'src/sync_coordinator.dart';

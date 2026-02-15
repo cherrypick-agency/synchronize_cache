@@ -32,6 +32,18 @@ final engine = SyncEngine(
 );
 ```
 
+One-liner helper:
+
+```dart
+final engine = createRestSyncEngine(
+  db: database,
+  base: Uri.parse('https://api.example.com'),
+  token: () async => 'Bearer ${await getAccessToken()}',
+  tables: [/* ... */],
+  pushConcurrency: 5,
+);
+```
+
 > **Performance Tip**: Using `pushConcurrency: 5` speeds up synchronization **~5x** with high network latency. E2E tests show push batch time reduced from 600ms to 120ms (with 50ms latency per request).
 
 ### Parameters

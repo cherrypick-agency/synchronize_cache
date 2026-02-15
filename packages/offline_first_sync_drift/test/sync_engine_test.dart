@@ -24,20 +24,21 @@ class TestItem {
   final String name;
 
   factory TestItem.fromJson(Map<String, dynamic> json) => TestItem(
-        id: json['id'] as String,
-        updatedAt: DateTime.parse(json['updated_at'] as String),
-        deletedAt: json['deleted_at'] != null
+    id: json['id'] as String,
+    updatedAt: DateTime.parse(json['updated_at'] as String),
+    deletedAt:
+        json['deleted_at'] != null
             ? DateTime.parse(json['deleted_at'] as String)
             : null,
-        name: json['name'] as String,
-      );
+    name: json['name'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'updated_at': updatedAt.toIso8601String(),
-        'deleted_at': deletedAt?.toIso8601String(),
-        'name': name,
-      };
+    'id': id,
+    'updated_at': updatedAt.toIso8601String(),
+    'deleted_at': deletedAt?.toIso8601String(),
+    'name': name,
+  };
 }
 
 // Тестовая таблица
@@ -89,12 +90,13 @@ class MockTransport implements TransportAdapter {
     pushCallCount++;
     pushedOps.addAll(ops);
     return BatchPushResult(
-      results: ops
-          .map((op) => OpPushResult(
-                opId: op.opId,
-                result: const PushSuccess(),
-              ))
-          .toList(),
+      results:
+          ops
+              .map(
+                (op) =>
+                    OpPushResult(opId: op.opId, result: const PushSuccess()),
+              )
+              .toList(),
     );
   }
 
@@ -105,10 +107,7 @@ class MockTransport implements TransportAdapter {
   }
 
   @override
-  Future<FetchResult> fetch({
-    required String kind,
-    required String id,
-  }) async =>
+  Future<FetchResult> fetch({required String kind, required String id}) async =>
       const FetchNotFound();
 
   @override
@@ -167,13 +166,15 @@ void main() {
         ],
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'test-op-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'test-op-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       await engine.sync();
 
@@ -325,13 +326,15 @@ void main() {
         ],
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'clear-test-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'clear-test-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {},
+        ),
+      );
 
       expect((await db.takeOutbox()).length, 1);
 
@@ -358,15 +361,57 @@ void main() {
         ],
       );
 
-      await db.setCursor(CursorKinds.fullResync, Cursor(
-        ts: DateTime.now().toUtc(),
-        lastId: '',
-      ));
+      await db.setCursor(
+        CursorKinds.fullResync,
+        Cursor(ts: DateTime.now().toUtc(), lastId: ''),
+      );
 
       await engine.sync(kinds: {'other_kind'});
 
       // Should not pull test_item since we only asked for other_kind
       expect(transport.pullCallCount, 0);
+      // Should not push test_item either because legacy kinds applies to both.
+      expect(transport.pushCallCount, 0);
+
+      engine.dispose();
+    });
+
+    test('sync supports independent pushKinds and pullKinds', () async {
+      final transport = MockTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.enqueue(
+        UpsertOp(
+          opId: 'split-kinds-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
+
+      await db.setCursor(
+        CursorKinds.fullResync,
+        Cursor(ts: DateTime.now().toUtc(), lastId: ''),
+      );
+
+      await engine.sync(pushKinds: {'test_item'}, pullKinds: {'other_kind'});
+
+      expect(transport.pushCallCount, 1);
+      expect(transport.pullCallCount, 0);
+      expect((await db.takeOutbox()).length, 0);
 
       engine.dispose();
     });
@@ -415,10 +460,7 @@ void main() {
         ],
       );
 
-      await expectLater(
-        engine.sync(),
-        throwsA(isA<Exception>()),
-      );
+      await expectLater(engine.sync(), throwsA(isA<Exception>()));
 
       engine.dispose();
     });
@@ -456,6 +498,41 @@ void main() {
       engine.dispose();
     });
 
+    test('sync stops current run after PushError and does not spin', () async {
+      final transport = ErrorResultTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.enqueue(
+        UpsertOp(
+          opId: 'push-error-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
+
+      final stats = await engine.sync();
+      expect(stats.errors, 1);
+
+      // Item stays queued for a future sync attempt.
+      expect((await db.takeOutbox()).length, 1);
+
+      engine.dispose();
+    });
+
     test('push emits OperationFailedEvent on PushError', () async {
       // Transport that returns error once, then success
       final transport = _ErrorOnceTransport();
@@ -473,13 +550,15 @@ void main() {
         ],
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'op-error-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'op-error-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       final events = <SyncEvent>[];
       final sub = engine.events.listen(events.add);
@@ -523,13 +602,15 @@ void main() {
         ),
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'op-conflict-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Local'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'op-conflict-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Local'},
+        ),
+      );
 
       await engine.sync();
 
@@ -540,42 +621,48 @@ void main() {
       engine.dispose();
     });
 
-    test('push throws MaxRetriesExceededException after retries exhausted', () async {
-      // Create a transport that throws during push (not PushError, but actual exception)
-      final transport = _ExceptionThrowingPushTransport();
-      final engine = SyncEngine(
-        db: db,
-        transport: transport,
-        tables: [
-          SyncableTable<TestItem>(
-            kind: 'test_item',
-            table: db.testItems,
-            fromJson: TestItem.fromJson,
-            toJson: (item) => item.toJson(),
-            toInsertable: (item) => item.toInsertable(),
+    test(
+      'push throws MaxRetriesExceededException after retries exhausted',
+      () async {
+        // Create a transport that throws during push (not PushError, but actual exception)
+        final transport = _ExceptionThrowingPushTransport();
+        final engine = SyncEngine(
+          db: db,
+          transport: transport,
+          tables: [
+            SyncableTable<TestItem>(
+              kind: 'test_item',
+              table: db.testItems,
+              fromJson: TestItem.fromJson,
+              toJson: (item) => item.toJson(),
+              toInsertable: (item) => item.toInsertable(),
+            ),
+          ],
+          config: const SyncConfig(
+            maxPushRetries: 1,
+            backoffMin: Duration.zero,
+            retryTransportErrorsInEngine: true,
           ),
-        ],
-        config: const SyncConfig(
-          maxPushRetries: 1,
-          backoffMin: Duration.zero,
-        ),
-      );
+        );
 
-      await db.enqueue(UpsertOp(
-        opId: 'op-throw-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+        await db.enqueue(
+          UpsertOp(
+            opId: 'op-throw-1',
+            kind: 'test_item',
+            id: 'item-1',
+            localTimestamp: DateTime.now().toUtc(),
+            payloadJson: {'id': 'item-1', 'name': 'Test'},
+          ),
+        );
 
-      await expectLater(
-        engine.sync(),
-        throwsA(isA<MaxRetriesExceededException>()),
-      );
+        await expectLater(
+          engine.sync(),
+          throwsA(isA<MaxRetriesExceededException>()),
+        );
 
-      engine.dispose();
-    });
+        engine.dispose();
+      },
+    );
   });
 
   group('Retry logic', () {
@@ -597,16 +684,19 @@ void main() {
           maxPushRetries: 3,
           backoffMin: Duration(milliseconds: 10), // Fast retry for test
           backoffMultiplier: 1.0,
+          retryTransportErrorsInEngine: true,
         ),
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'op-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'op-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       await engine.sync();
 
@@ -636,16 +726,19 @@ void main() {
           maxPushRetries: 3,
           backoffMin: Duration(milliseconds: 10),
           backoffMultiplier: 1.0,
+          retryTransportErrorsInEngine: true,
         ),
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'op-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'op-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       await expectLater(engine.sync(), throwsA(isA<Exception>()));
 
@@ -658,15 +751,229 @@ void main() {
     });
   });
 
+  group('SyncRunResult and pending push tracking', () {
+    test(
+      'syncRun throws when legacy kinds is combined with split filters',
+      () async {
+        final transport = MockTransport();
+        final engine = SyncEngine(
+          db: db,
+          transport: transport,
+          tables: [
+            SyncableTable<TestItem>(
+              kind: 'test_item',
+              table: db.testItems,
+              fromJson: TestItem.fromJson,
+              toJson: (item) => item.toJson(),
+              toInsertable: (item) => item.toInsertable(),
+            ),
+          ],
+        );
+
+        await expectLater(
+          () => engine.syncRun(kinds: {'test_item'}, pushKinds: {'test_item'}),
+          throwsArgumentError,
+        );
+
+        engine.dispose();
+      },
+    );
+
+    test('syncRun returns structured push/pull result', () async {
+      final transport = MockTransport();
+      final now = DateTime.now().toUtc();
+      transport.pullResponses.add({
+        'id': 'pull-1',
+        'updated_at': now.toIso8601String(),
+        'name': 'Pulled',
+      });
+
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.setCursor(
+        CursorKinds.fullResync,
+        Cursor(ts: DateTime.now().toUtc(), lastId: ''),
+      );
+      await db.enqueue(
+        UpsertOp(
+          opId: 'sync-run-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Local'},
+        ),
+      );
+
+      final result = await engine.syncRun(
+        pushKinds: {'test_item'},
+        pullKinds: {'test_item'},
+      );
+
+      expect(result.push.pushed, 1);
+      expect(result.pull.pulled, 1);
+      expect(result.kindsPushed, {'test_item'});
+      expect(result.kindsPulled, {'test_item'});
+      expect(result.stuckOpsCount, 0);
+      expect(result.hadErrors, isFalse);
+
+      engine.dispose();
+    });
+
+    test('syncRun scheduled fullResync keeps push/pull stats', () async {
+      final transport = MockTransport();
+      final now = DateTime.now().toUtc();
+      transport.pullResponses.add({
+        'id': 'pull-full-1',
+        'updated_at': now.toIso8601String(),
+        'name': 'Pulled',
+      });
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.enqueue(
+        UpsertOp(
+          opId: 'sync-run-full-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Local'},
+        ),
+      );
+
+      // No full-resync cursor set -> syncRun() takes scheduled full-resync path.
+      final result = await engine.syncRun();
+      expect(result.push.pushed, 1);
+      expect(result.pull.pulled, 1);
+      expect(result.stats.pushed, 1);
+      expect(result.stats.pulled, 1);
+
+      engine.dispose();
+    });
+
+    test('syncRun captures firstError on PushError', () async {
+      final transport = ErrorResultTransport();
+      final engine = SyncEngine(
+        db: db,
+        transport: transport,
+        tables: [
+          SyncableTable<TestItem>(
+            kind: 'test_item',
+            table: db.testItems,
+            fromJson: TestItem.fromJson,
+            toJson: (item) => item.toJson(),
+            toInsertable: (item) => item.toInsertable(),
+          ),
+        ],
+      );
+
+      await db.setCursor(
+        CursorKinds.fullResync,
+        Cursor(ts: DateTime.now().toUtc(), lastId: ''),
+      );
+      await db.enqueue(
+        UpsertOp(
+          opId: 'sync-run-error-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Local'},
+        ),
+      );
+
+      final result = await engine.syncRun(
+        pushKinds: {'test_item'},
+        pullKinds: const <String>{},
+      );
+
+      expect(result.stats.errors, 1);
+      expect(result.firstError != null, isTrue);
+      expect(result.hadErrors, isTrue);
+
+      engine.dispose();
+    });
+
+    test(
+      'watchPendingPushCount excludes stuck operations by default',
+      () async {
+        final transport = MockTransport();
+        final engine = SyncEngine(
+          db: db,
+          transport: transport,
+          tables: [
+            SyncableTable<TestItem>(
+              kind: 'test_item',
+              table: db.testItems,
+              fromJson: TestItem.fromJson,
+              toJson: (item) => item.toJson(),
+              toInsertable: (item) => item.toInsertable(),
+            ),
+          ],
+          config: const SyncConfig(maxOutboxTryCount: 2),
+        );
+
+        await db.enqueue(
+          UpsertOp(
+            opId: 'pending-op',
+            kind: 'test_item',
+            id: 'item-1',
+            localTimestamp: DateTime.now().toUtc(),
+            payloadJson: {'id': 'item-1', 'name': 'Local'},
+          ),
+        );
+
+        final pendingBefore = await engine.watchPendingPushCount().first;
+        expect(pendingBefore, 1);
+
+        await db.incrementOutboxTryCount(['pending-op']);
+        await db.incrementOutboxTryCount(['pending-op']);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        final pendingAfter = await engine.watchPendingPushCount().first;
+        final pendingIncludingStuck =
+            await engine.watchPendingPushCount(includeStuck: true).first;
+
+        expect(pendingAfter, 0);
+        expect(pendingIncludingStuck, 1);
+
+        engine.dispose();
+      },
+    );
+  });
+
   group('Outbox operations', () {
     test('enqueue UpsertOp', () async {
-      await db.enqueue(UpsertOp(
-        opId: 'upsert-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'upsert-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       final ops = await db.takeOutbox();
       expect(ops.length, 1);
@@ -674,12 +981,14 @@ void main() {
     });
 
     test('enqueue DeleteOp', () async {
-      await db.enqueue(DeleteOp(
-        opId: 'delete-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-      ));
+      await db.enqueue(
+        DeleteOp(
+          opId: 'delete-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+        ),
+      );
 
       final ops = await db.takeOutbox();
       expect(ops.length, 1);
@@ -688,13 +997,15 @@ void main() {
 
     test('takeOutbox respects limit', () async {
       for (var i = 0; i < 10; i++) {
-        await db.enqueue(UpsertOp(
-          opId: 'limit-$i',
-          kind: 'test_item',
-          id: 'item-$i',
-          localTimestamp: DateTime.now().toUtc(),
-          payloadJson: {},
-        ));
+        await db.enqueue(
+          UpsertOp(
+            opId: 'limit-$i',
+            kind: 'test_item',
+            id: 'item-$i',
+            localTimestamp: DateTime.now().toUtc(),
+            payloadJson: {},
+          ),
+        );
       }
 
       final ops = await db.takeOutbox(limit: 3);
@@ -702,26 +1013,73 @@ void main() {
     });
 
     test('ackOutbox removes operations', () async {
-      await db.enqueue(UpsertOp(
-        opId: 'ack-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {},
-      ));
-      await db.enqueue(UpsertOp(
-        opId: 'ack-2',
-        kind: 'test_item',
-        id: 'item-2',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'ack-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {},
+        ),
+      );
+      await db.enqueue(
+        UpsertOp(
+          opId: 'ack-2',
+          kind: 'test_item',
+          id: 'item-2',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {},
+        ),
+      );
 
       await db.ackOutbox(['ack-1']);
 
       final ops = await db.takeOutbox();
       expect(ops.length, 1);
       expect(ops.first.opId, 'ack-2');
+    });
+
+    test('recordOutboxFailures writes meta and ackOutbox clears it', () async {
+      final outboxService = OutboxService(db);
+      await outboxService.enqueue(
+        UpsertOp(
+          opId: 'meta-op-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1'},
+        ),
+      );
+
+      await outboxService.recordFailures({'meta-op-1': 'boom'});
+
+      final metaRows =
+          await db
+              .customSelect(
+                'SELECT last_error FROM sync_outbox_meta WHERE op_id = ?',
+                variables: [Variable.withString('meta-op-1')],
+              )
+              .get();
+      expect(metaRows.length, 1);
+      expect(metaRows.first.read<String>('last_error'), 'boom');
+
+      await db.ackOutbox(['meta-op-1']);
+
+      final metaAfterAck =
+          await db
+              .customSelect(
+                'SELECT op_id FROM sync_outbox_meta WHERE op_id = ?',
+                variables: [Variable.withString('meta-op-1')],
+              )
+              .get();
+      expect(metaAfterAck, isEmpty);
+    });
+
+    test('getStuckOutbox validates minTryCount', () async {
+      await expectLater(
+        () => db.getStuckOutbox(minTryCount: 0),
+        throwsArgumentError,
+      );
     });
   });
 
@@ -782,10 +1140,10 @@ void main() {
 
     test('unions lists correctly', () {
       final local = {
-        'tags': ['a', 'b', 'c']
+        'tags': ['a', 'b', 'c'],
       };
       final server = {
-        'tags': ['b', 'd']
+        'tags': ['b', 'd'],
       };
 
       final result = ConflictUtils.preservingMerge(local, server);
@@ -799,13 +1157,13 @@ void main() {
         'items': [
           {'id': '1', 'name': 'Local 1'},
           {'id': '3', 'name': 'Local 3'},
-        ]
+        ],
       };
       final server = {
         'items': [
           {'id': '1', 'name': 'Server 1'},
           {'id': '2', 'name': 'Server 2'},
-        ]
+        ],
       };
 
       final result = ConflictUtils.preservingMerge(local, server);
@@ -842,10 +1200,10 @@ void main() {
 
     test('handles nested objects', () {
       final local = {
-        'settings': {'theme': 'dark', 'fontSize': 14}
+        'settings': {'theme': 'dark', 'fontSize': 14},
       };
       final server = {
-        'settings': {'theme': 'light', 'language': 'en'}
+        'settings': {'theme': 'light', 'language': 'en'},
       };
 
       final result = ConflictUtils.preservingMerge(local, server);
@@ -907,13 +1265,15 @@ void main() {
         ),
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'conflict-op',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Local Name', 'mood': 5},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'conflict-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Local Name', 'mood': 5},
+        ),
+      );
 
       final events = <SyncEvent>[];
       final sub = engine.events.listen(events.add);
@@ -960,13 +1320,15 @@ void main() {
         ),
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'merge-test',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'mood': 5},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'merge-test',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'mood': 5},
+        ),
+      );
 
       final events = <SyncEvent>[];
       final sub = engine.events.listen(events.add);
@@ -1011,10 +1373,10 @@ void main() {
         ],
       );
 
-      await db.setCursor('test_item', Cursor(
-        ts: DateTime(2024, 1, 1).toUtc(),
-        lastId: 'old-item',
-      ));
+      await db.setCursor(
+        'test_item',
+        Cursor(ts: DateTime(2024, 1, 1).toUtc(), lastId: 'old-item'),
+      );
 
       await engine.fullResync();
 
@@ -1029,36 +1391,39 @@ void main() {
       engine.dispose();
     });
 
-    test('fullResync emits FullResyncStarted event with manual reason', () async {
-      final transport = MockTransport();
-      final engine = SyncEngine(
-        db: db,
-        transport: transport,
-        tables: [
-          SyncableTable<TestItem>(
-            kind: 'test_item',
-            table: db.testItems,
-            fromJson: TestItem.fromJson,
-            toJson: (item) => item.toJson(),
-            toInsertable: (item) => item.toInsertable(),
-          ),
-        ],
-      );
+    test(
+      'fullResync emits FullResyncStarted event with manual reason',
+      () async {
+        final transport = MockTransport();
+        final engine = SyncEngine(
+          db: db,
+          transport: transport,
+          tables: [
+            SyncableTable<TestItem>(
+              kind: 'test_item',
+              table: db.testItems,
+              fromJson: TestItem.fromJson,
+              toJson: (item) => item.toJson(),
+              toInsertable: (item) => item.toInsertable(),
+            ),
+          ],
+        );
 
-      final events = <SyncEvent>[];
-      final sub = engine.events.listen(events.add);
+        final events = <SyncEvent>[];
+        final sub = engine.events.listen(events.add);
 
-      await engine.fullResync();
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+        await engine.fullResync();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      await sub.cancel();
+        await sub.cancel();
 
-      final fullResyncEvents = events.whereType<FullResyncStarted>().toList();
-      expect(fullResyncEvents.length, 1);
-      expect(fullResyncEvents.first.reason, FullResyncReason.manual);
+        final fullResyncEvents = events.whereType<FullResyncStarted>().toList();
+        expect(fullResyncEvents.length, 1);
+        expect(fullResyncEvents.first.reason, FullResyncReason.manual);
 
-      engine.dispose();
-    });
+        engine.dispose();
+      },
+    );
 
     test('sync triggers fullResync when interval exceeded', () async {
       final transport = MockTransport();
@@ -1074,9 +1439,7 @@ void main() {
             toInsertable: (item) => item.toInsertable(),
           ),
         ],
-        config: const SyncConfig(
-          fullResyncInterval: Duration(days: 7),
-        ),
+        config: const SyncConfig(fullResyncInterval: Duration(days: 7)),
       );
 
       final events = <SyncEvent>[];
@@ -1094,43 +1457,44 @@ void main() {
       engine.dispose();
     });
 
-    test('sync does not trigger fullResync when interval not exceeded', () async {
-      final transport = MockTransport();
-      final engine = SyncEngine(
-        db: db,
-        transport: transport,
-        tables: [
-          SyncableTable<TestItem>(
-            kind: 'test_item',
-            table: db.testItems,
-            fromJson: TestItem.fromJson,
-            toJson: (item) => item.toJson(),
-            toInsertable: (item) => item.toInsertable(),
-          ),
-        ],
-        config: const SyncConfig(
-          fullResyncInterval: Duration(days: 7),
-        ),
-      );
+    test(
+      'sync does not trigger fullResync when interval not exceeded',
+      () async {
+        final transport = MockTransport();
+        final engine = SyncEngine(
+          db: db,
+          transport: transport,
+          tables: [
+            SyncableTable<TestItem>(
+              kind: 'test_item',
+              table: db.testItems,
+              fromJson: TestItem.fromJson,
+              toJson: (item) => item.toJson(),
+              toInsertable: (item) => item.toInsertable(),
+            ),
+          ],
+          config: const SyncConfig(fullResyncInterval: Duration(days: 7)),
+        );
 
-      await db.setCursor(CursorKinds.fullResync, Cursor(
-        ts: DateTime.now().toUtc(),
-        lastId: '',
-      ));
+        await db.setCursor(
+          CursorKinds.fullResync,
+          Cursor(ts: DateTime.now().toUtc(), lastId: ''),
+        );
 
-      final events = <SyncEvent>[];
-      final sub = engine.events.listen(events.add);
+        final events = <SyncEvent>[];
+        final sub = engine.events.listen(events.add);
 
-      await engine.sync();
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+        await engine.sync();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      await sub.cancel();
+        await sub.cancel();
 
-      final fullResyncEvents = events.whereType<FullResyncStarted>().toList();
-      expect(fullResyncEvents, isEmpty);
+        final fullResyncEvents = events.whereType<FullResyncStarted>().toList();
+        expect(fullResyncEvents, isEmpty);
 
-      engine.dispose();
-    });
+        engine.dispose();
+      },
+    );
 
     test('fullResync pushes outbox before resetting cursors', () async {
       final transport = MockTransport();
@@ -1148,13 +1512,15 @@ void main() {
         ],
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'before-resync',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'before-resync',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       await engine.fullResync();
 
@@ -1192,11 +1558,15 @@ void main() {
         ],
       );
 
-      await db.into(db.testItems).insert(TestItemsCompanion.insert(
-        id: 'old-item',
-        name: 'Old Item',
-        updatedAt: DateTime(2024, 1, 1).toUtc(),
-      ));
+      await db
+          .into(db.testItems)
+          .insert(
+            TestItemsCompanion.insert(
+              id: 'old-item',
+              name: 'Old Item',
+              updatedAt: DateTime(2024, 1, 1).toUtc(),
+            ),
+          );
 
       final itemsBefore = await db.select(db.testItems).get();
       expect(itemsBefore.length, 1);
@@ -1234,8 +1604,14 @@ void main() {
 
       final cursor = await db.getCursor(CursorKinds.fullResync);
       expect(cursor != null, isTrue);
-      expect(cursor!.ts.isAfter(beforeSync.subtract(const Duration(seconds: 1))), isTrue);
-      expect(cursor.ts.isBefore(afterSync.add(const Duration(seconds: 1))), isTrue);
+      expect(
+        cursor!.ts.isAfter(beforeSync.subtract(const Duration(seconds: 1))),
+        isTrue,
+      );
+      expect(
+        cursor.ts.isBefore(afterSync.add(const Duration(seconds: 1))),
+        isTrue,
+      );
 
       engine.dispose();
     });
@@ -1262,13 +1638,15 @@ void main() {
         ],
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'op-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'op-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       final stats = await engine.fullResync();
 
@@ -1310,14 +1688,16 @@ void main() {
     test('enqueue preserves baseUpdatedAt', () async {
       final baseTime = DateTime(2024, 1, 1, 12, 0, 0).toUtc();
 
-      await db.enqueue(UpsertOp(
-        opId: 'base-test',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-        baseUpdatedAt: baseTime,
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'base-test',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+          baseUpdatedAt: baseTime,
+        ),
+      );
 
       final ops = await db.takeOutbox();
       expect(ops.length, 1);
@@ -1328,14 +1708,16 @@ void main() {
     });
 
     test('enqueue preserves changedFields', () async {
-      await db.enqueue(UpsertOp(
-        opId: 'changed-test',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test', 'mood': 5},
-        changedFields: {'mood'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'changed-test',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test', 'mood': 5},
+          changedFields: {'mood'},
+        ),
+      );
 
       final ops = await db.takeOutbox();
       expect(ops.length, 1);
@@ -1345,13 +1727,15 @@ void main() {
     });
 
     test('isNewRecord returns true when baseUpdatedAt is null', () async {
-      await db.enqueue(UpsertOp(
-        opId: 'new-record',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'New'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'new-record',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'New'},
+        ),
+      );
 
       final ops = await db.takeOutbox();
       final op = ops.first as UpsertOp;
@@ -1390,17 +1774,19 @@ void main() {
 
       engine.events.listen(events.add);
 
-      await db.enqueue(UpsertOp(
-        opId: 'server-wins-op',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: now,
-        payloadJson: {
-          'id': 'item-1',
-          'name': 'Local Name',
-          'updated_at': now.toIso8601String(),
-        },
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'server-wins-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: now,
+          payloadJson: {
+            'id': 'item-1',
+            'name': 'Local Name',
+            'updated_at': now.toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1444,17 +1830,19 @@ void main() {
 
       engine.events.listen(events.add);
 
-      await db.enqueue(UpsertOp(
-        opId: 'client-wins-op',
-        kind: 'test_item',
-        id: 'item-2',
-        localTimestamp: now,
-        payloadJson: {
-          'id': 'item-2',
-          'name': 'Local Name',
-          'updated_at': now.toIso8601String(),
-        },
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'client-wins-op',
+          kind: 'test_item',
+          id: 'item-2',
+          localTimestamp: now,
+          payloadJson: {
+            'id': 'item-2',
+            'name': 'Local Name',
+            'updated_at': now.toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1465,7 +1853,8 @@ void main() {
     });
 
     test('lastWriteWins accepts client when local is newer', () async {
-      final oldServerTime = DateTime.now().subtract(const Duration(hours: 2)).toUtc();
+      final oldServerTime =
+          DateTime.now().subtract(const Duration(hours: 2)).toUtc();
       final serverData = {
         'id': 'item-3',
         'name': 'Old Server Name',
@@ -1489,23 +1878,27 @@ void main() {
             toInsertable: (item) => item.toInsertable(),
           ),
         ],
-        config: const SyncConfig(conflictStrategy: ConflictStrategy.lastWriteWins),
+        config: const SyncConfig(
+          conflictStrategy: ConflictStrategy.lastWriteWins,
+        ),
       );
 
       engine.events.listen(events.add);
 
       final newLocalTime = DateTime.now().toUtc();
-      await db.enqueue(UpsertOp(
-        opId: 'lww-client-op',
-        kind: 'test_item',
-        id: 'item-3',
-        localTimestamp: newLocalTime,
-        payloadJson: {
-          'id': 'item-3',
-          'name': 'New Local Name',
-          'updated_at': newLocalTime.toIso8601String(),
-        },
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'lww-client-op',
+          kind: 'test_item',
+          id: 'item-3',
+          localTimestamp: newLocalTime,
+          payloadJson: {
+            'id': 'item-3',
+            'name': 'New Local Name',
+            'updated_at': newLocalTime.toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1516,7 +1909,8 @@ void main() {
     });
 
     test('lastWriteWins accepts server when server is newer', () async {
-      final newServerTime = DateTime.now().add(const Duration(hours: 1)).toUtc();
+      final newServerTime =
+          DateTime.now().add(const Duration(hours: 1)).toUtc();
       final serverData = {
         'id': 'item-4',
         'name': 'New Server Name',
@@ -1540,23 +1934,28 @@ void main() {
             toInsertable: (item) => item.toInsertable(),
           ),
         ],
-        config: const SyncConfig(conflictStrategy: ConflictStrategy.lastWriteWins),
+        config: const SyncConfig(
+          conflictStrategy: ConflictStrategy.lastWriteWins,
+        ),
       );
 
       engine.events.listen(events.add);
 
-      final oldLocalTime = DateTime.now().subtract(const Duration(hours: 2)).toUtc();
-      await db.enqueue(UpsertOp(
-        opId: 'lww-server-op',
-        kind: 'test_item',
-        id: 'item-4',
-        localTimestamp: oldLocalTime,
-        payloadJson: {
-          'id': 'item-4',
-          'name': 'Old Local Name',
-          'updated_at': oldLocalTime.toIso8601String(),
-        },
-      ));
+      final oldLocalTime =
+          DateTime.now().subtract(const Duration(hours: 2)).toUtc();
+      await db.enqueue(
+        UpsertOp(
+          opId: 'lww-server-op',
+          kind: 'test_item',
+          id: 'item-4',
+          localTimestamp: oldLocalTime,
+          payloadJson: {
+            'id': 'item-4',
+            'name': 'Old Local Name',
+            'updated_at': oldLocalTime.toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1604,17 +2003,19 @@ void main() {
 
       engine.events.listen(events.add);
 
-      await db.enqueue(UpsertOp(
-        opId: 'merge-op',
-        kind: 'test_item',
-        id: 'item-5',
-        localTimestamp: now,
-        payloadJson: {
-          'id': 'item-5',
-          'name': 'Local Name',
-          'updated_at': now.toIso8601String(),
-        },
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'merge-op',
+          kind: 'test_item',
+          id: 'item-5',
+          localTimestamp: now,
+          payloadJson: {
+            'id': 'item-5',
+            'name': 'Local Name',
+            'updated_at': now.toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1661,17 +2062,19 @@ void main() {
 
       engine.events.listen(events.add);
 
-      await db.enqueue(UpsertOp(
-        opId: 'manual-op',
-        kind: 'test_item',
-        id: 'item-6',
-        localTimestamp: now,
-        payloadJson: {
-          'id': 'item-6',
-          'name': 'Local Name',
-          'updated_at': now.toIso8601String(),
-        },
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'manual-op',
+          kind: 'test_item',
+          id: 'item-6',
+          localTimestamp: now,
+          payloadJson: {
+            'id': 'item-6',
+            'name': 'Local Name',
+            'updated_at': now.toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1714,17 +2117,19 @@ void main() {
 
       engine.events.listen(events.add);
 
-      await db.enqueue(UpsertOp(
-        opId: 'discard-op',
-        kind: 'test_item',
-        id: 'item-8',
-        localTimestamp: now,
-        payloadJson: {
-          'id': 'item-8',
-          'name': 'Local Name',
-          'updated_at': now.toIso8601String(),
-        },
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'discard-op',
+          kind: 'test_item',
+          id: 'item-8',
+          localTimestamp: now,
+          payloadJson: {
+            'id': 'item-8',
+            'name': 'Local Name',
+            'updated_at': now.toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1732,20 +2137,21 @@ void main() {
 
       engine.dispose();
     });
-
   });
 
   group('DeleteOp tests', () {
     test('enqueue DeleteOp preserves baseUpdatedAt', () async {
       final baseTime = DateTime(2024, 1, 1, 12, 0, 0).toUtc();
 
-      await db.enqueue(DeleteOp(
-        opId: 'delete-base-test',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        baseUpdatedAt: baseTime,
-      ));
+      await db.enqueue(
+        DeleteOp(
+          opId: 'delete-base-test',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          baseUpdatedAt: baseTime,
+        ),
+      );
 
       final ops = await db.takeOutbox();
       expect(ops.length, 1);
@@ -1772,12 +2178,14 @@ void main() {
         ],
       );
 
-      await db.enqueue(DeleteOp(
-        opId: 'delete-op-1',
-        kind: 'test_item',
-        id: 'item-to-delete',
-        localTimestamp: now,
-      ));
+      await db.enqueue(
+        DeleteOp(
+          opId: 'delete-op-1',
+          kind: 'test_item',
+          id: 'item-to-delete',
+          localTimestamp: now,
+        ),
+      );
 
       await engine.sync();
 
@@ -1810,17 +2218,19 @@ void main() {
         ],
       );
 
-      await db.enqueue(UpsertOp(
-        opId: 'not-found-op',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {
-          'id': 'item-1',
-          'name': 'Test',
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'not-found-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {
+            'id': 'item-1',
+            'name': 'Test',
+            'updated_at': DateTime.now().toIso8601String(),
+          },
+        ),
+      );
 
       await engine.sync();
 
@@ -1833,21 +2243,25 @@ void main() {
 
   group('Drift DAC queries', () {
     test('filter outbox by kind using DAC', () async {
-      await db.enqueue(UpsertOp(
-        opId: 'dac-op-1',
-        kind: 'users',
-        id: 'user-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'user-1', 'name': 'User 1'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'dac-op-1',
+          kind: 'users',
+          id: 'user-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'user-1', 'name': 'User 1'},
+        ),
+      );
 
-      await db.enqueue(UpsertOp(
-        opId: 'dac-op-2',
-        kind: 'posts',
-        id: 'post-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'post-1', 'title': 'Post 1'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'dac-op-2',
+          kind: 'posts',
+          id: 'post-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'post-1', 'title': 'Post 1'},
+        ),
+      );
 
       final allOps = await db.takeOutbox();
       expect(allOps.length, 2);
@@ -1855,34 +2269,67 @@ void main() {
       await db.ackOutbox(['dac-op-1', 'dac-op-2']);
     });
 
+    test('takeOutbox can filter by kinds', () async {
+      await db.enqueue(
+        UpsertOp(
+          opId: 'kind-filter-1',
+          kind: 'users',
+          id: 'user-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'user-1'},
+        ),
+      );
+      await db.enqueue(
+        UpsertOp(
+          opId: 'kind-filter-2',
+          kind: 'posts',
+          id: 'post-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'post-1'},
+        ),
+      );
+
+      final onlyUsers = await db.takeOutbox(kinds: {'users'});
+      expect(onlyUsers.length, 1);
+      expect(onlyUsers.first.kind, 'users');
+
+      await db.ackOutbox(['kind-filter-1', 'kind-filter-2']);
+    });
+
     test('outbox ordering by timestamp', () async {
       final time1 = DateTime.now().subtract(const Duration(hours: 2)).toUtc();
       final time2 = DateTime.now().subtract(const Duration(hours: 1)).toUtc();
       final time3 = DateTime.now().toUtc();
 
-      await db.enqueue(UpsertOp(
-        opId: 'order-op-3',
-        kind: 'test_item',
-        id: 'item-3',
-        localTimestamp: time3,
-        payloadJson: {'id': 'item-3', 'name': 'Third'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'order-op-3',
+          kind: 'test_item',
+          id: 'item-3',
+          localTimestamp: time3,
+          payloadJson: {'id': 'item-3', 'name': 'Third'},
+        ),
+      );
 
-      await db.enqueue(UpsertOp(
-        opId: 'order-op-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: time1,
-        payloadJson: {'id': 'item-1', 'name': 'First'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'order-op-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: time1,
+          payloadJson: {'id': 'item-1', 'name': 'First'},
+        ),
+      );
 
-      await db.enqueue(UpsertOp(
-        opId: 'order-op-2',
-        kind: 'test_item',
-        id: 'item-2',
-        localTimestamp: time2,
-        payloadJson: {'id': 'item-2', 'name': 'Second'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'order-op-2',
+          kind: 'test_item',
+          id: 'item-2',
+          localTimestamp: time2,
+          payloadJson: {'id': 'item-2', 'name': 'Second'},
+        ),
+      );
 
       final ops = await db.takeOutbox();
       expect(ops.length, 3);
@@ -1948,10 +2395,10 @@ void main() {
         ],
       );
 
-      await db.setCursor('test_kind', Cursor(
-        ts: DateTime.now().toUtc(),
-        lastId: 'some-id',
-      ));
+      await db.setCursor(
+        'test_kind',
+        Cursor(ts: DateTime.now().toUtc(), lastId: 'some-id'),
+      );
 
       final cursorService = CursorService(db);
       await cursorService.reset('test_kind');
@@ -1995,13 +2442,15 @@ void main() {
     test('hasOperations returns true when not empty', () async {
       final outboxService = OutboxService(db);
 
-      await outboxService.enqueue(UpsertOp(
-        opId: 'has-ops-test',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await outboxService.enqueue(
+        UpsertOp(
+          opId: 'has-ops-test',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       final hasOps = await outboxService.hasOperations();
       expect(hasOps, isTrue);
@@ -2013,15 +2462,18 @@ void main() {
       final outboxService = OutboxService(db);
       final oldTime = DateTime.now().subtract(const Duration(days: 30)).toUtc();
 
-      await outboxService.enqueue(UpsertOp(
-        opId: 'old-purge-op',
-        kind: 'test_item',
-        id: 'item-old',
-        localTimestamp: oldTime,
-        payloadJson: {'id': 'item-old', 'name': 'Old'},
-      ));
+      await outboxService.enqueue(
+        UpsertOp(
+          opId: 'old-purge-op',
+          kind: 'test_item',
+          id: 'item-old',
+          localTimestamp: oldTime,
+          payloadJson: {'id': 'item-old', 'name': 'Old'},
+        ),
+      );
 
-      final threshold = DateTime.now().subtract(const Duration(days: 7)).toUtc();
+      final threshold =
+          DateTime.now().subtract(const Duration(days: 7)).toUtc();
       final deleted = await outboxService.purgeOlderThan(threshold);
 
       expect(deleted, 1);
@@ -2033,23 +2485,28 @@ void main() {
       final oldTime = DateTime.now().subtract(const Duration(days: 30)).toUtc();
       final newTime = DateTime.now().toUtc();
 
-      await db.enqueue(UpsertOp(
-        opId: 'old-op',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: oldTime,
-        payloadJson: {'id': 'item-1', 'name': 'Old'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'old-op',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: oldTime,
+          payloadJson: {'id': 'item-1', 'name': 'Old'},
+        ),
+      );
 
-      await db.enqueue(UpsertOp(
-        opId: 'new-op',
-        kind: 'test_item',
-        id: 'item-2',
-        localTimestamp: newTime,
-        payloadJson: {'id': 'item-2', 'name': 'New'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'new-op',
+          kind: 'test_item',
+          id: 'item-2',
+          localTimestamp: newTime,
+          payloadJson: {'id': 'item-2', 'name': 'New'},
+        ),
+      );
 
-      final threshold = DateTime.now().subtract(const Duration(days: 7)).toUtc();
+      final threshold =
+          DateTime.now().subtract(const Duration(days: 7)).toUtc();
       final deleted = await db.purgeOutboxOlderThan(threshold);
 
       expect(deleted, 1);
@@ -2060,13 +2517,15 @@ void main() {
     });
 
     test('ackOutbox with empty list does nothing', () async {
-      await db.enqueue(UpsertOp(
-        opId: 'op-1',
-        kind: 'test_item',
-        id: 'item-1',
-        localTimestamp: DateTime.now().toUtc(),
-        payloadJson: {'id': 'item-1', 'name': 'Test'},
-      ));
+      await db.enqueue(
+        UpsertOp(
+          opId: 'op-1',
+          kind: 'test_item',
+          id: 'item-1',
+          localTimestamp: DateTime.now().toUtc(),
+          payloadJson: {'id': 'item-1', 'name': 'Test'},
+        ),
+      );
 
       await db.ackOutbox([]);
 
@@ -2075,10 +2534,10 @@ void main() {
     });
 
     test('resetAllCursors with empty set does nothing', () async {
-      await db.setCursor('test_item', Cursor(
-        ts: DateTime.now().toUtc(),
-        lastId: 'item-1',
-      ));
+      await db.setCursor(
+        'test_item',
+        Cursor(ts: DateTime.now().toUtc(), lastId: 'item-1'),
+      );
 
       await db.resetAllCursors({});
 
@@ -2087,11 +2546,15 @@ void main() {
     });
 
     test('clearSyncableTables clears specified tables', () async {
-      await db.into(db.testItems).insert(TestItemsCompanion.insert(
-        id: 'item-1',
-        name: 'Test Item',
-        updatedAt: DateTime.now().toUtc(),
-      ));
+      await db
+          .into(db.testItems)
+          .insert(
+            TestItemsCompanion.insert(
+              id: 'item-1',
+              name: 'Test Item',
+              updatedAt: DateTime.now().toUtc(),
+            ),
+          );
 
       final itemsBefore = await db.select(db.testItems).get();
       expect(itemsBefore.length, 1);
@@ -2147,9 +2610,39 @@ void main() {
     });
   });
 
+  group('SyncEngine validation', () {
+    test('throws on duplicate table kinds', () {
+      final transport = MockTransport();
+      expect(
+        () => SyncEngine(
+          db: db,
+          transport: transport,
+          tables: [
+            SyncableTable<TestItem>(
+              kind: 'dup',
+              table: db.testItems,
+              fromJson: TestItem.fromJson,
+              toJson: (item) => item.toJson(),
+              toInsertable: (item) => item.toInsertable(),
+            ),
+            SyncableTable<TestItem>(
+              kind: 'dup',
+              table: db.testItems,
+              fromJson: TestItem.fromJson,
+              toJson: (item) => item.toJson(),
+              toInsertable: (item) => item.toInsertable(),
+            ),
+          ],
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   group('Pull with deleted items', () {
     test('pull handles items with deletedAt', () async {
-      final deletedItemTime = DateTime.now().subtract(const Duration(days: 1)).toUtc();
+      final deletedItemTime =
+          DateTime.now().subtract(const Duration(days: 1)).toUtc();
 
       final transport = DeletedItemsTransport(
         items: [
@@ -2186,8 +2679,7 @@ void main() {
 
       await engine.sync();
 
-      final cacheUpdateEvents =
-          events.whereType<CacheUpdateEvent>().toList();
+      final cacheUpdateEvents = events.whereType<CacheUpdateEvent>().toList();
       expect(cacheUpdateEvents, isNotEmpty);
       expect(cacheUpdateEvents.first.deletes, 1);
       expect(cacheUpdateEvents.first.upserts, 1);
@@ -2215,11 +2707,12 @@ void main() {
           SyncableTable<TestItem>(
             kind: 'test_item',
             table: db.testItems,
-            fromJson: (json) => TestItem(
-              id: json['uuid'] as String? ?? json['id'] as String,
-              name: json['name'] as String,
-              updatedAt: DateTime.parse(json['updated_at'] as String),
-            ),
+            fromJson:
+                (json) => TestItem(
+                  id: json['uuid'] as String? ?? json['id'] as String,
+                  name: json['name'] as String,
+                  updatedAt: DateTime.parse(json['updated_at'] as String),
+                ),
             toJson: (item) => item.toJson(),
             toInsertable: (item) => item.toInsertable(),
           ),
@@ -2231,7 +2724,6 @@ void main() {
       engine.dispose();
     });
   });
-
 }
 
 class DeletedItemsTransport implements TransportAdapter {
@@ -2247,13 +2739,17 @@ class DeletedItemsTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: items);
+  }) async => PullPage(items: items);
 
   @override
   Future<BatchPushResult> push(List<Op> ops) async => BatchPushResult(
-        results: ops.map((op) => OpPushResult(opId: op.opId, result: const PushSuccess())).toList(),
-      );
+    results:
+        ops
+            .map(
+              (op) => OpPushResult(opId: op.opId, result: const PushSuccess()),
+            )
+            .toList(),
+  );
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();
@@ -2279,13 +2775,17 @@ class UuidItemsTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: items);
+  }) async => PullPage(items: items);
 
   @override
   Future<BatchPushResult> push(List<Op> ops) async => BatchPushResult(
-        results: ops.map((op) => OpPushResult(opId: op.opId, result: const PushSuccess())).toList(),
-      );
+    results:
+        ops
+            .map(
+              (op) => OpPushResult(opId: op.opId, result: const PushSuccess()),
+            )
+            .toList(),
+  );
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();
@@ -2322,10 +2822,7 @@ class _FailingTransport implements TransportAdapter {
   }
 
   @override
-  Future<FetchResult> fetch({
-    required String kind,
-    required String id,
-  }) async {
+  Future<FetchResult> fetch({required String kind, required String id}) async {
     throw Exception('Network error');
   }
 
@@ -2346,12 +2843,13 @@ class RetryTransport implements TransportAdapter {
       throw Exception('Network error attempt $pushAttempts');
     }
     return BatchPushResult(
-      results: ops
-          .map((op) => OpPushResult(
-                opId: op.opId,
-                result: const PushSuccess(),
-              ))
-          .toList(),
+      results:
+          ops
+              .map(
+                (op) =>
+                    OpPushResult(opId: op.opId, result: const PushSuccess()),
+              )
+              .toList(),
     );
   }
 
@@ -2363,8 +2861,7 @@ class RetryTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();
@@ -2392,15 +2889,18 @@ class ConflictingTransport implements TransportAdapter {
   Future<BatchPushResult> push(List<Op> ops) async {
     pushCallCount++;
     return BatchPushResult(
-      results: ops
-          .map((op) => OpPushResult(
-                opId: op.opId,
-                result: PushConflict(
-                  serverData: serverData,
-                  serverTimestamp: serverTimestamp,
+      results:
+          ops
+              .map(
+                (op) => OpPushResult(
+                  opId: op.opId,
+                  result: PushConflict(
+                    serverData: serverData,
+                    serverTimestamp: serverTimestamp,
+                  ),
                 ),
-              ))
-          .toList(),
+              )
+              .toList(),
     );
   }
 
@@ -2412,8 +2912,7 @@ class ConflictingTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async {
@@ -2434,12 +2933,13 @@ class SlowTransport implements TransportAdapter {
   Future<BatchPushResult> push(List<Op> ops) async {
     await Future<void>.delayed(const Duration(milliseconds: 100));
     return BatchPushResult(
-      results: ops
-          .map((op) => OpPushResult(
-                opId: op.opId,
-                result: const PushSuccess(),
-              ))
-          .toList(),
+      results:
+          ops
+              .map(
+                (op) =>
+                    OpPushResult(opId: op.opId, result: const PushSuccess()),
+              )
+              .toList(),
     );
   }
 
@@ -2481,16 +2981,19 @@ class RetryingConflictTransport implements TransportAdapter {
 
   @override
   Future<BatchPushResult> push(List<Op> ops) async => BatchPushResult(
-        results: ops
-            .map((op) => OpPushResult(
-                  opId: op.opId,
-                  result: PushConflict(
-                    serverData: serverData,
-                    serverTimestamp: serverTimestamp,
-                  ),
-                ))
+    results:
+        ops
+            .map(
+              (op) => OpPushResult(
+                opId: op.opId,
+                result: PushConflict(
+                  serverData: serverData,
+                  serverTimestamp: serverTimestamp,
+                ),
+              ),
+            )
             .toList(),
-      );
+  );
 
   @override
   Future<PullPage> pull({
@@ -2500,8 +3003,7 @@ class RetryingConflictTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async {
@@ -2526,13 +3028,13 @@ class RetryingConflictTransport implements TransportAdapter {
 class NotFoundTransport implements TransportAdapter {
   @override
   Future<BatchPushResult> push(List<Op> ops) async => BatchPushResult(
-        results: ops
-            .map((op) => OpPushResult(
-                  opId: op.opId,
-                  result: const PushNotFound(),
-                ))
+    results:
+        ops
+            .map(
+              (op) => OpPushResult(opId: op.opId, result: const PushNotFound()),
+            )
             .toList(),
-      );
+  );
 
   @override
   Future<PullPage> pull({
@@ -2542,8 +3044,7 @@ class NotFoundTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();
@@ -2559,13 +3060,16 @@ class NotFoundTransport implements TransportAdapter {
 class ErrorResultTransport implements TransportAdapter {
   @override
   Future<BatchPushResult> push(List<Op> ops) async => BatchPushResult(
-        results: ops
-            .map((op) => OpPushResult(
-                  opId: op.opId,
-                  result: PushError(Exception('Push error')),
-                ))
+    results:
+        ops
+            .map(
+              (op) => OpPushResult(
+                opId: op.opId,
+                result: PushError(Exception('Push error')),
+              ),
+            )
             .toList(),
-      );
+  );
 
   @override
   Future<PullPage> pull({
@@ -2575,8 +3079,7 @@ class ErrorResultTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();
@@ -2593,23 +3096,23 @@ class ErrorPushTransport implements TransportAdapter {
   final Map<String, Object?> serverData;
   final DateTime serverTimestamp;
 
-  ErrorPushTransport({
-    required this.serverData,
-    required this.serverTimestamp,
-  });
+  ErrorPushTransport({required this.serverData, required this.serverTimestamp});
 
   @override
   Future<BatchPushResult> push(List<Op> ops) async => BatchPushResult(
-        results: ops
-            .map((op) => OpPushResult(
-                  opId: op.opId,
-                  result: PushConflict(
-                    serverData: serverData,
-                    serverTimestamp: serverTimestamp,
-                  ),
-                ))
+    results:
+        ops
+            .map(
+              (op) => OpPushResult(
+                opId: op.opId,
+                result: PushConflict(
+                  serverData: serverData,
+                  serverTimestamp: serverTimestamp,
+                ),
+              ),
+            )
             .toList(),
-      );
+  );
 
   @override
   Future<PullPage> pull({
@@ -2619,8 +3122,7 @@ class ErrorPushTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async =>
@@ -2642,14 +3144,18 @@ class _ErrorOnceTransport implements TransportAdapter {
   Future<BatchPushResult> push(List<Op> ops) async {
     _pushCallCount++;
     return BatchPushResult(
-      results: ops
-          .map((op) => OpPushResult(
-                opId: op.opId,
-                result: _pushCallCount == 1
-                    ? PushError(Exception('Temporary error'))
-                    : const PushSuccess(),
-              ))
-          .toList(),
+      results:
+          ops
+              .map(
+                (op) => OpPushResult(
+                  opId: op.opId,
+                  result:
+                      _pushCallCount == 1
+                          ? PushError(Exception('Temporary error'))
+                          : const PushSuccess(),
+                ),
+              )
+              .toList(),
     );
   }
 
@@ -2661,8 +3167,7 @@ class _ErrorOnceTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();
@@ -2690,8 +3195,7 @@ class _ExceptionThrowingPushTransport implements TransportAdapter {
     String? pageToken,
     String? afterId,
     bool includeDeleted = true,
-  }) async =>
-      PullPage(items: []);
+  }) async => PullPage(items: []);
 
   @override
   Future<PushResult> forcePush(Op op) async => const PushSuccess();

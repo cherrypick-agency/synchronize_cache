@@ -76,11 +76,7 @@ void main() {
     });
 
     test('can be const', () {
-      const data = SyncCursorData(
-        kind: 'posts',
-        ts: 0,
-        lastId: '',
-      );
+      const data = SyncCursorData(kind: 'posts', ts: 0, lastId: '');
 
       expect(data.kind, 'posts');
       expect(data.ts, 0);
@@ -88,17 +84,9 @@ void main() {
     });
 
     test('handles different kinds', () {
-      const usersCursor = SyncCursorData(
-        kind: 'users',
-        ts: 100,
-        lastId: 'u1',
-      );
+      const usersCursor = SyncCursorData(kind: 'users', ts: 100, lastId: 'u1');
 
-      const postsCursor = SyncCursorData(
-        kind: 'posts',
-        ts: 200,
-        lastId: 'p1',
-      );
+      const postsCursor = SyncCursorData(kind: 'posts', ts: 200, lastId: 'p1');
 
       expect(usersCursor.kind, isNot(postsCursor.kind));
       expect(usersCursor.ts, isNot(postsCursor.ts));

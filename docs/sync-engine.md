@@ -695,6 +695,8 @@ const SyncConfig({
 })
 ```
 
+> `pullOnStartup`, `pushImmediately`, `reconcileInterval`, `lazyReconcileOnMiss` are legacy app-flow flags. Prefer `SyncCoordinator` for startup/periodic/debounced triggers.
+
 ---
 
 ## Complete Lifecycle Example

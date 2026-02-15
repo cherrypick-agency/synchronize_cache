@@ -26,6 +26,8 @@ void main() {
         equals(const Duration(milliseconds: 500)),
       );
       expect(config.skipConflictingOps, isFalse);
+      expect(config.maxOutboxTryCount, equals(5));
+      expect(config.retryTransportErrorsInEngine, isFalse);
     });
 
     test('creates with custom values', () {
@@ -54,6 +56,8 @@ void main() {
         maxConflictRetries: 5,
         conflictRetryDelay: const Duration(seconds: 1),
         skipConflictingOps: true,
+        maxOutboxTryCount: 7,
+        retryTransportErrorsInEngine: true,
       );
 
       expect(config.pageSize, equals(100));
@@ -72,6 +76,8 @@ void main() {
       expect(config.maxConflictRetries, equals(5));
       expect(config.conflictRetryDelay, equals(const Duration(seconds: 1)));
       expect(config.skipConflictingOps, isTrue);
+      expect(config.maxOutboxTryCount, equals(7));
+      expect(config.retryTransportErrorsInEngine, isTrue);
     });
 
     test('copyWith preserves values when null passed', () {
@@ -132,6 +138,8 @@ void main() {
         maxConflictRetries: 10,
         conflictRetryDelay: const Duration(seconds: 2),
         skipConflictingOps: true,
+        maxOutboxTryCount: 9,
+        retryTransportErrorsInEngine: true,
       );
 
       expect(copied.pageSize, equals(1000));
@@ -150,6 +158,8 @@ void main() {
       expect(copied.maxConflictRetries, equals(10));
       expect(copied.conflictRetryDelay, equals(const Duration(seconds: 2)));
       expect(copied.skipConflictingOps, isTrue);
+      expect(copied.maxOutboxTryCount, equals(9));
+      expect(copied.retryTransportErrorsInEngine, isTrue);
     });
   });
 

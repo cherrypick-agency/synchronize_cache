@@ -5,10 +5,7 @@ void main() {
   group('Cursor', () {
     test('creates with ts and lastId', () {
       final timestamp = DateTime.utc(2024, 1, 15, 10, 30);
-      final cursor = Cursor(
-        ts: timestamp,
-        lastId: 'item-123',
-      );
+      final cursor = Cursor(ts: timestamp, lastId: 'item-123');
 
       expect(cursor.ts, equals(timestamp));
       expect(cursor.lastId, equals('item-123'));
@@ -24,19 +21,13 @@ void main() {
     });
 
     test('handles empty lastId', () {
-      final cursor = Cursor(
-        ts: DateTime.utc(2024, 1, 1),
-        lastId: '',
-      );
+      final cursor = Cursor(ts: DateTime.utc(2024, 1, 1), lastId: '');
 
       expect(cursor.lastId, isEmpty);
     });
 
     test('handles epoch timestamp', () {
-      final cursor = Cursor(
-        ts: DateTime.utc(1970, 1, 1),
-        lastId: 'first',
-      );
+      final cursor = Cursor(ts: DateTime.utc(1970, 1, 1), lastId: 'first');
 
       expect(cursor.ts.millisecondsSinceEpoch, equals(0));
     });

@@ -24,6 +24,8 @@ class SyncConfig {
     this.maxConflictRetries = 3,
     this.conflictRetryDelay = const Duration(milliseconds: 500),
     this.skipConflictingOps = false,
+    this.maxOutboxTryCount = 5,
+    this.retryTransportErrorsInEngine = false,
   });
 
   /// Page size for pull operations.
@@ -44,16 +46,28 @@ class SyncConfig {
   /// Interval for full resynchronization.
   final Duration fullResyncInterval;
 
-  /// Whether to pull on startup.
+  /// Legacy app-flow flag.
+  ///
+  /// Deprecated: use `SyncCoordinator(pullOnStartup: ...)` instead.
+  @Deprecated('Use SyncCoordinator.pullOnStartup instead.')
   final bool pullOnStartup;
 
-  /// Whether to push changes immediately.
+  /// Legacy app-flow flag.
+  ///
+  /// Deprecated: use `SyncCoordinator(pushOnOutboxChanges: ...)` instead.
+  @Deprecated('Use SyncCoordinator.pushOnOutboxChanges instead.')
   final bool pushImmediately;
 
-  /// Interval for data reconciliation.
+  /// Legacy app-flow flag.
+  ///
+  /// Deprecated: use `SyncCoordinator(autoInterval: ...)` instead.
+  @Deprecated('Use SyncCoordinator.autoInterval instead.')
   final Duration? reconcileInterval;
 
-  /// Enable lazy reconciliation on cache miss.
+  /// Reserved for future use.
+  ///
+  /// Deprecated until dedicated lazy-reconcile API is introduced.
+  @Deprecated('Reserved for future API. Do not rely on this flag.')
   final bool lazyReconcileOnMiss;
 
   /// Default conflict resolution strategy.
@@ -80,6 +94,15 @@ class SyncConfig {
   /// If false, operation remains in outbox for next sync.
   final bool skipConflictingOps;
 
+  /// Max attempt count before an outbox operation is considered stuck.
+  final int maxOutboxTryCount;
+
+  /// Whether push transport errors should be retried at engine level.
+  ///
+  /// Keep this false when transport already has robust retry logic
+  /// to avoid duplicate backoff layers.
+  final bool retryTransportErrorsInEngine;
+
   /// Create a copy of configuration with modified parameters.
   SyncConfig copyWith({
     int? pageSize,
@@ -98,6 +121,8 @@ class SyncConfig {
     int? maxConflictRetries,
     Duration? conflictRetryDelay,
     bool? skipConflictingOps,
+    int? maxOutboxTryCount,
+    bool? retryTransportErrorsInEngine,
   }) => SyncConfig(
     pageSize: pageSize ?? this.pageSize,
     backoffMin: backoffMin ?? this.backoffMin,
@@ -115,6 +140,9 @@ class SyncConfig {
     maxConflictRetries: maxConflictRetries ?? this.maxConflictRetries,
     conflictRetryDelay: conflictRetryDelay ?? this.conflictRetryDelay,
     skipConflictingOps: skipConflictingOps ?? this.skipConflictingOps,
+    maxOutboxTryCount: maxOutboxTryCount ?? this.maxOutboxTryCount,
+    retryTransportErrorsInEngine:
+        retryTransportErrorsInEngine ?? this.retryTransportErrorsInEngine,
   );
 }
 

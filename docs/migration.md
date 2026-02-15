@@ -4,6 +4,202 @@ The library uses Drift's standard migration system (`schemaVersion`, `MigrationS
 
 ---
 
+## 0. API Changes in This Release
+
+This section summarizes user-facing API updates introduced in this release.
+
+### Summary
+
+- `SyncEngine.sync(kinds: ...)` is now legacy (deprecated alias).
+- New explicit filters: `sync(pushKinds: ..., pullKinds: ...)`.
+- App-flow flags in `SyncConfig` are now legacy:
+  - `pullOnStartup`
+  - `pushImmediately`
+  - `reconcileInterval`
+  - `lazyReconcileOnMiss`
+- New orchestration layer: `SyncCoordinator`.
+- New registration sugar: `db.myTable.syncTable(...)`.
+- New changed-fields automation:
+  - `ChangedFieldsDiff`
+  - `replaceAndEnqueueDiff(...)`
+- New REST one-liner:
+  - `createRestSyncEngine(...)`
+
+### Why this was changed
+
+- Make push/pull filtering explicit and predictable.
+- Move app lifecycle orchestration out of core sync config.
+- Reduce boilerplate in table registration and write flows.
+- Keep backward compatibility while preparing a clean next major release.
+
+### Action required
+
+- Existing code continues to work.
+- You can migrate incrementally by replacing legacy API calls with recommended equivalents below.
+- New code should use the recommended API.
+
+### Deprecated -> Replacement (quick map)
+
+| Deprecated API | Replacement | Impact |
+|---|---|---|
+| `engine.sync(kinds: {...})` | `engine.sync(pushKinds: {...}, pullKinds: {...})` | low |
+| `SyncConfig(pullOnStartup: ...)` | `SyncCoordinator(pullOnStartup: ...)` | medium |
+| `SyncConfig(pushImmediately: ...)` | `SyncCoordinator(pushOnOutboxChanges: ...)` | medium |
+| `SyncConfig(reconcileInterval: ...)` | `SyncCoordinator(autoInterval: ...)` | medium |
+| `SyncConfig(lazyReconcileOnMiss: ...)` | Reserved for future API (keep explicit app-side behavior) | low |
+| `SyncCoordinator(outboxPollInterval: ...)` | Removed need: coordinator now reacts to outbox streams | low |
+
+### Legacy -> Recommended mapping
+
+| Legacy API | Recommended API |
+|---|---|
+| `engine.sync(kinds: {'todos'})` | `engine.sync(pushKinds: {'todos'}, pullKinds: {'todos'})` |
+| `SyncConfig(pullOnStartup: true)` | `SyncCoordinator(pullOnStartup: true)` |
+| `SyncConfig(pushImmediately: true)` | `SyncCoordinator(pushOnOutboxChanges: true)` |
+| `SyncConfig(reconcileInterval: d)` | `SyncCoordinator(autoInterval: d)` |
+| `SyncConfig(lazyReconcileOnMiss: ...)` | Reserved for future API (keep behavior explicit in app code) |
+| Manual `SyncableTable(...)` boilerplate | `db.todos.syncTable(...)` |
+| Manual `changedFields` tracking only | `replaceAndEnqueueDiff(...)` or `ChangedFieldsDiff` |
+
+### Behavioral note: `kinds`
+
+In earlier versions, `kinds` effectively filtered pull only.
+
+In this release, legacy `kinds` is treated as a shared alias for both push and pull.  
+If you want "filter pull, push all pending outbox kinds", use:
+
+```dart
+await engine.sync(
+  pullKinds: {'todos'},
+  // pushKinds omitted => push all pending kinds from outbox
+);
+```
+
+### Examples
+
+#### 1) Sync filters
+
+```dart
+// Before (legacy):
+await engine.sync(kinds: {'daily_feeling'});
+
+// After (explicit):
+await engine.sync(
+  pushKinds: {'daily_feeling'},
+  pullKinds: {'daily_feeling'},
+);
+```
+
+#### 2) Startup and periodic sync
+
+```dart
+// Before (legacy flags in SyncConfig):
+final engine = SyncEngine(
+  db: db,
+  transport: transport,
+  tables: [dailyFeelingSync],
+  config: const SyncConfig(
+    pullOnStartup: true,
+    reconcileInterval: Duration(minutes: 5),
+    pushImmediately: true,
+  ),
+);
+
+// After:
+final engine = SyncEngine(
+  db: db,
+  transport: transport,
+  tables: [dailyFeelingSync],
+);
+
+final coordinator = SyncCoordinator(
+  engine: engine,
+  pullOnStartup: true,
+  autoInterval: const Duration(minutes: 5),
+  pushOnOutboxChanges: true,
+);
+
+await coordinator.start();
+```
+
+#### 3) Table registration
+
+```dart
+// Before:
+final dailyFeelingSync = SyncableTable<DailyFeeling>(
+  kind: 'daily_feeling',
+  table: db.dailyFeelings,
+  fromJson: DailyFeeling.fromJson,
+  toJson: (e) => e.toJson(),
+  toInsertable: (e) => e.toInsertable(),
+  getId: (e) => e.id,
+  getUpdatedAt: (e) => e.updatedAt,
+);
+
+// After:
+final dailyFeelingSync = db.dailyFeelings.syncTable(
+  kind: 'daily_feeling',
+  fromJson: DailyFeeling.fromJson,
+  toJson: (e) => e.toJson(),
+  toInsertable: (e) => e.toInsertable(),
+  getId: (e) => e.id,
+  getUpdatedAt: (e) => e.updatedAt,
+);
+```
+
+#### 4) changedFields automation
+
+```dart
+// Before:
+await writer.replaceAndEnqueue(
+  updated,
+  baseUpdatedAt: old.updatedAt,
+  changedFields: {'mood', 'notes'},
+);
+
+// After:
+await writer.replaceAndEnqueueDiff(
+  before: old,
+  after: updated,
+  baseUpdatedAt: old.updatedAt,
+);
+```
+
+#### 5) REST setup one-liner
+
+```dart
+// Before:
+final transport = RestTransport(
+  base: Uri.parse('https://api.example.com'),
+  token: () async => 'Bearer ${await getToken()}',
+);
+final engine = SyncEngine(
+  db: db,
+  transport: transport,
+  tables: [dailyFeelingSync],
+);
+
+// After:
+final engine = createRestSyncEngine(
+  db: db,
+  base: Uri.parse('https://api.example.com'),
+  token: () async => 'Bearer ${await getToken()}',
+  tables: [dailyFeelingSync],
+);
+```
+
+### Deprecation timeline
+
+- Current release keeps backward compatibility (deprecated API remains available).
+- No immediate major bump is required for introducing these deprecations.
+- Deprecated API is planned for removal together in the next major release.
+- Recommended release plan:
+  1. Keep deprecated API during one full minor cycle.
+  2. Announce removal window in changelog and README.
+  3. Remove deprecated API in the next major.
+
+---
+
 ## 1. Adding a New Synced Table
 
 **Step 1.** Define the table with `SyncColumns`:

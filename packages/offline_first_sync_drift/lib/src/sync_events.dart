@@ -1,4 +1,5 @@
 import 'package:offline_first_sync_drift/src/conflict_resolution.dart';
+import 'package:offline_first_sync_drift/src/sync_error.dart';
 
 /// Synchronization events for logging, UI, and metrics.
 
@@ -96,10 +97,12 @@ class SyncStats {
 
 /// Synchronization error.
 class SyncErrorEvent implements SyncEvent {
-  SyncErrorEvent(this.phase, this.error, [this.stackTrace]);
+  SyncErrorEvent(this.phase, this.error, [this.stackTrace])
+    : errorInfo = SyncErrorInfo.fromError(error);
   final SyncPhase phase;
   final Object error;
   final StackTrace? stackTrace;
+  final SyncErrorInfo errorInfo;
 
   @override
   String toString() => 'SyncError($phase): $error';
@@ -229,14 +232,43 @@ class OperationFailedEvent implements SyncEvent {
     required this.entityId,
     required this.error,
     this.willRetry = false,
-  });
+  }) : errorInfo = SyncErrorInfo.fromError(error);
 
   final String opId;
   final String kind;
   final String entityId;
   final Object error;
   final bool willRetry;
+  final SyncErrorInfo errorInfo;
 
   @override
   String toString() => 'OperationFailed($kind/$entityId, retry: $willRetry)';
+}
+
+/// Pull page processed.
+class PullPageProcessedEvent implements SyncEvent {
+  PullPageProcessedEvent({
+    required this.kind,
+    required this.pageSize,
+    required this.totalDone,
+  });
+
+  final String kind;
+  final int pageSize;
+  final int totalDone;
+}
+
+/// Push batch processed.
+class PushBatchProcessedEvent implements SyncEvent {
+  PushBatchProcessedEvent({
+    required this.batchSize,
+    required this.successCount,
+    required this.errorCount,
+    required this.conflictCount,
+  });
+
+  final int batchSize;
+  final int successCount;
+  final int errorCount;
+  final int conflictCount;
 }

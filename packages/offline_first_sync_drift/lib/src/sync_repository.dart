@@ -41,14 +41,13 @@ abstract class SyncRepository<T, DB extends GeneratedDatabase> {
   );
 
   /// Enqueue delete for an entity id (no local write).
-  Future<void> enqueueDelete(
-    String id, {
-    DateTime? baseUpdatedAt,
-  }) => writer.enqueueDelete(id: id, baseUpdatedAt: baseUpdatedAt);
+  Future<void> enqueueDelete(String id, {DateTime? baseUpdatedAt}) =>
+      writer.enqueueDelete(id: id, baseUpdatedAt: baseUpdatedAt);
 
   /// Apply server state locally without enqueue (used during pull).
   Future<void> upsertFromServer(T entity) async {
-    await db.into(table).insertOnConflictUpdate(syncTable.getInsertable(entity));
+    await db
+        .into(table)
+        .insertOnConflictUpdate(syncTable.getInsertable(entity));
   }
 }
-

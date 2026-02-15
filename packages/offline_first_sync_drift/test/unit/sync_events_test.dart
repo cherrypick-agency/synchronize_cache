@@ -1,4 +1,6 @@
 import 'package:offline_first_sync_drift/src/conflict_resolution.dart';
+import 'package:offline_first_sync_drift/src/exceptions.dart';
+import 'package:offline_first_sync_drift/src/sync_error.dart';
 import 'package:offline_first_sync_drift/src/sync_events.dart';
 import 'package:test/test.dart';
 
@@ -30,7 +32,10 @@ void main() {
     test('toString includes reason', () {
       final event = FullResyncStarted(FullResyncReason.manual);
 
-      expect(event.toString(), equals('FullResyncStarted(FullResyncReason.manual)'));
+      expect(
+        event.toString(),
+        equals('FullResyncStarted(FullResyncReason.manual)'),
+      );
     });
   });
 
@@ -163,10 +168,7 @@ void main() {
     test('copyWith updates specified values', () {
       const original = SyncStats(pushed: 5);
 
-      final copied = original.copyWith(
-        pulled: 20,
-        conflicts: 3,
-      );
+      final copied = original.copyWith(pulled: 20, conflicts: 3);
 
       expect(copied.pushed, equals(5));
       expect(copied.pulled, equals(20));
@@ -204,7 +206,11 @@ void main() {
 
     test('creates with stack trace', () {
       final stackTrace = StackTrace.current;
-      final event = SyncErrorEvent(SyncPhase.pull, Exception('Failed'), stackTrace);
+      final event = SyncErrorEvent(
+        SyncPhase.pull,
+        Exception('Failed'),
+        stackTrace,
+      );
 
       expect(event.stackTrace, equals(stackTrace));
     });
@@ -213,6 +219,17 @@ void main() {
       final event = SyncErrorEvent(SyncPhase.push, 'Timeout');
 
       expect(event.toString(), equals('SyncError(SyncPhase.push): Timeout'));
+    });
+
+    test('maps errorInfo for transport auth error', () {
+      final event = SyncErrorEvent(
+        SyncPhase.push,
+        TransportException.httpError(401),
+      );
+
+      expect(event.errorInfo.category, SyncErrorCategory.auth);
+      expect(event.errorInfo.retryable, isFalse);
+      expect(event.errorInfo.statusCode, 401);
     });
   });
 
@@ -256,7 +273,9 @@ void main() {
 
       expect(
         event.toString(),
-        equals('ConflictDetected(tasks/task-123, strategy: ConflictStrategy.serverWins)'),
+        equals(
+          'ConflictDetected(tasks/task-123, strategy: ConflictStrategy.serverWins)',
+        ),
       );
     });
   });
@@ -367,7 +386,9 @@ void main() {
 
       expect(
         event.toString(),
-        equals('ConflictUnresolved(products/prod-99, reason: Max retries exceeded)'),
+        equals(
+          'ConflictUnresolved(products/prod-99, reason: Max retries exceeded)',
+        ),
       );
     });
   });
@@ -417,11 +438,7 @@ void main() {
     });
 
     test('creates with upserts and deletes', () {
-      final event = CacheUpdateEvent(
-        'tasks',
-        upserts: 10,
-        deletes: 3,
-      );
+      final event = CacheUpdateEvent('tasks', upserts: 10, deletes: 3);
 
       expect(event.upserts, equals(10));
       expect(event.deletes, equals(3));
@@ -430,7 +447,10 @@ void main() {
     test('toString includes kind, upserts and deletes', () {
       final event = CacheUpdateEvent('items', upserts: 5, deletes: 2);
 
-      expect(event.toString(), equals('CacheUpdate(items, upserts: 5, deletes: 2)'));
+      expect(
+        event.toString(),
+        equals('CacheUpdate(items, upserts: 5, deletes: 2)'),
+      );
     });
   });
 
@@ -500,7 +520,50 @@ void main() {
         willRetry: true,
       );
 
-      expect(event.toString(), equals('OperationFailed(items/item-5, retry: true)'));
+      expect(
+        event.toString(),
+        equals('OperationFailed(items/item-5, retry: true)'),
+      );
+    });
+
+    test('maps errorInfo for network exception', () {
+      final event = OperationFailedEvent(
+        opId: 'op-net',
+        kind: 'items',
+        entityId: 'item-9',
+        error: const NetworkException('timeout'),
+      );
+
+      expect(event.errorInfo.category, SyncErrorCategory.network);
+      expect(event.errorInfo.retryable, isTrue);
+    });
+  });
+
+  group('New progress events', () {
+    test('PullPageProcessedEvent stores values', () {
+      final event = PullPageProcessedEvent(
+        kind: 'users',
+        pageSize: 20,
+        totalDone: 60,
+      );
+
+      expect(event.kind, 'users');
+      expect(event.pageSize, 20);
+      expect(event.totalDone, 60);
+    });
+
+    test('PushBatchProcessedEvent stores values', () {
+      final event = PushBatchProcessedEvent(
+        batchSize: 10,
+        successCount: 7,
+        errorCount: 2,
+        conflictCount: 1,
+      );
+
+      expect(event.batchSize, 10);
+      expect(event.successCount, 7);
+      expect(event.errorCount, 2);
+      expect(event.conflictCount, 1);
     });
   });
 
@@ -522,8 +585,14 @@ void main() {
         SyncProgress(SyncPhase.pull, 1, 10),
         SyncCompleted(const Duration(seconds: 1), DateTime.now()),
         SyncErrorEvent(SyncPhase.push, 'error'),
-        ConflictDetectedEvent(conflict: conflict, strategy: ConflictStrategy.serverWins),
-        ConflictResolvedEvent(conflict: conflict, resolution: const AcceptServer()),
+        ConflictDetectedEvent(
+          conflict: conflict,
+          strategy: ConflictStrategy.serverWins,
+        ),
+        ConflictResolvedEvent(
+          conflict: conflict,
+          resolution: const AcceptServer(),
+        ),
         ConflictUnresolvedEvent(conflict: conflict, reason: 'reason'),
         DataMergedEvent(
           kind: 'k',
@@ -533,8 +602,18 @@ void main() {
           mergedData: {},
         ),
         CacheUpdateEvent('kind'),
-        OperationPushedEvent(opId: 'op', kind: 'k', entityId: 'id', operationType: 'upsert'),
-        OperationFailedEvent(opId: 'op', kind: 'k', entityId: 'id', error: 'err'),
+        OperationPushedEvent(
+          opId: 'op',
+          kind: 'k',
+          entityId: 'id',
+          operationType: 'upsert',
+        ),
+        OperationFailedEvent(
+          opId: 'op',
+          kind: 'k',
+          entityId: 'id',
+          error: 'err',
+        ),
       ];
 
       for (final event in events) {

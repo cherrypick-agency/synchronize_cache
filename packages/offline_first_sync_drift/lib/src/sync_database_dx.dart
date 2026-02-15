@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:offline_first_sync_drift/src/changed_fields.dart';
 import 'package:offline_first_sync_drift/src/sync_writer.dart';
 import 'package:offline_first_sync_drift/src/syncable_table.dart';
 
@@ -34,6 +35,28 @@ extension SyncDatabaseDx on GeneratedDatabase {
         entity,
         baseUpdatedAt: baseUpdatedAt,
         changedFields: changedFields,
+        opId: opId,
+        localTimestamp: localTimestamp,
+      );
+
+  /// Replace [after] and enqueue an upsert with auto-diff `changedFields`.
+  Future<void> replaceAndEnqueueDiff<T>(
+    SyncableTable<T> table, {
+    required T before,
+    required T after,
+    required DateTime baseUpdatedAt,
+    Set<String> ignoredFields = ChangedFieldsDiff.defaultIgnoredFields,
+    OpIdFactory? opIdFactory,
+    SyncClock? clock,
+    String? opId,
+    DateTime? localTimestamp,
+  }) => syncWriter(opIdFactory: opIdFactory, clock: clock)
+      .forTable(table)
+      .replaceAndEnqueueDiff(
+        before: before,
+        after: after,
+        baseUpdatedAt: baseUpdatedAt,
+        ignoredFields: ignoredFields,
         opId: opId,
         localTimestamp: localTimestamp,
       );
@@ -76,4 +99,3 @@ extension SyncDatabaseDx on GeneratedDatabase {
         localTimestamp: localTimestamp,
       );
 }
-

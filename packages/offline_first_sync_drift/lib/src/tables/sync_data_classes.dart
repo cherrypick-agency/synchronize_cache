@@ -33,3 +33,15 @@ class SyncCursorData {
     required this.lastId,
   });
 }
+
+class SyncOutboxMetaData {
+  final String opId;
+  final int? lastTriedAt;
+  final String? lastError;
+
+  const SyncOutboxMetaData({
+    required this.opId,
+    this.lastTriedAt,
+    this.lastError,
+  });
+}

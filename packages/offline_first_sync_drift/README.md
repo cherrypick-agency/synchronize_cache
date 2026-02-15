@@ -85,12 +85,13 @@ final engine = SyncEngine(
   db: db,
   transport: yourTransport,  // See offline_first_sync_drift_rest
   tables: [
-    SyncableTable<DailyFeeling>(
+    db.dailyFeelings.syncTable<DailyFeeling>(
       kind: 'daily_feeling',
-      table: db.dailyFeelings,
       fromJson: DailyFeeling.fromJson,
       toJson: (e) => e.toJson(),
       toInsertable: (e) => e.toInsertable(),
+      getId: (e) => e.id,
+      getUpdatedAt: (e) => e.updatedAt,
     ),
   ],
 );
@@ -112,6 +113,27 @@ await db.enqueue(
 // Sync
 final stats = await engine.sync();
 print('Pushed: ${stats.pushed}, Pulled: ${stats.pulled}');
+
+// Push/pull filters can be configured independently
+await engine.sync(
+  pushKinds: {'daily_feeling'},
+  pullKinds: {'daily_feeling'},
+);
+```
+
+### Optional app-flow coordinator
+
+`SyncConfig` now focuses on sync algorithm settings. App-flow triggers are handled by `SyncCoordinator`:
+
+```dart
+final coordinator = SyncCoordinator(
+  engine: engine,
+  pullOnStartup: true,
+  autoInterval: const Duration(minutes: 5),
+  pushOnOutboxChanges: true,
+);
+
+await coordinator.start();
 ```
 
 ## Conflict Resolution
@@ -156,6 +178,10 @@ engine.events.listen((event) {
 This package defines the `TransportAdapter` interface. Use one of the implementations:
 
 - [`offline_first_sync_drift_rest`](https://pub.dev/packages/offline_first_sync_drift_rest) - REST API transport
+
+## Migration guide
+
+- [Migration guide](https://github.com/cherrypick-agency/offline_first_sync_drift/blob/main/docs/migration.md)
 
 ## Additional Information
 

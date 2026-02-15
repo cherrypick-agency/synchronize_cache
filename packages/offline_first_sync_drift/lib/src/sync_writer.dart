@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:offline_first_sync_drift/src/changed_fields.dart';
 import 'package:offline_first_sync_drift/src/op.dart';
 import 'package:offline_first_sync_drift/src/op_id.dart';
 import 'package:offline_first_sync_drift/src/sync_database.dart';
@@ -15,13 +16,10 @@ typedef SyncClock = DateTime Function();
 /// Keeps the low-level escape hatch (`db.enqueue(Op)`) intact, but removes
 /// boilerplate like opId/now/kind/toJson from typical CRUD flows.
 class SyncWriter<DB extends GeneratedDatabase> {
-  SyncWriter(
-    this.db, {
-    OpIdFactory? opIdFactory,
-    SyncClock? clock,
-  }) : opIdFactory = opIdFactory ?? OpId.v4,
-       clock = clock ?? (() => DateTime.now().toUtc()),
-       _syncDb = _requireSyncDb(db);
+  SyncWriter(this.db, {OpIdFactory? opIdFactory, SyncClock? clock})
+    : opIdFactory = opIdFactory ?? OpId.v4,
+      clock = clock ?? (() => DateTime.now().toUtc()),
+      _syncDb = _requireSyncDb(db);
 
   final DB db;
   final OpIdFactory opIdFactory;
@@ -139,6 +137,31 @@ class SyncEntityWriter<T, DB extends GeneratedDatabase> {
     );
   }
 
+  /// Replace [after] in local DB and enqueue an upsert operation with
+  /// automatically calculated `changedFields`.
+  Future<void> replaceAndEnqueueDiff({
+    required T before,
+    required T after,
+    required DateTime baseUpdatedAt,
+    Set<String> ignoredFields = ChangedFieldsDiff.defaultIgnoredFields,
+    String? opId,
+    DateTime? localTimestamp,
+  }) async {
+    final changedFields = ChangedFieldsDiff.diffOrNullMaps(
+      _payload(before),
+      _payload(after),
+      ignoredFields: ignoredFields,
+    );
+
+    await replaceAndEnqueue(
+      after,
+      baseUpdatedAt: baseUpdatedAt,
+      changedFields: changedFields,
+      opId: opId,
+      localTimestamp: localTimestamp,
+    );
+  }
+
   /// Enqueue a delete operation (no local write).
   Future<void> enqueueDelete({
     required String id,
@@ -180,13 +203,6 @@ extension SyncWriterDatabaseExtension<DB extends GeneratedDatabase> on DB {
   /// Create a [SyncWriter] for this database.
   ///
   /// Throws if the database does not implement [SyncDatabaseMixin].
-  SyncWriter<DB> syncWriter({
-    OpIdFactory? opIdFactory,
-    SyncClock? clock,
-  }) => SyncWriter<DB>(
-    this,
-    opIdFactory: opIdFactory,
-    clock: clock,
-  );
+  SyncWriter<DB> syncWriter({OpIdFactory? opIdFactory, SyncClock? clock}) =>
+      SyncWriter<DB>(this, opIdFactory: opIdFactory, clock: clock);
 }
-

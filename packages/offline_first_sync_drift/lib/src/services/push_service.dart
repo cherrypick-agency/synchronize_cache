@@ -58,19 +58,34 @@ class PushService {
   final SyncConfig _config;
   final StreamController<SyncEvent> _events;
 
-  /// Push all operations from outbox.
-  Future<PushStats> pushAll() async {
+  /// Push operations from outbox.
+  ///
+  /// If [kinds] is provided, only operations for those kinds are processed.
+  Future<PushStats> pushAll({Set<String>? kinds}) async {
     final counters = _PushCounters();
 
     try {
+      if (kinds != null && kinds.isEmpty) {
+        return counters.toStats();
+      }
+
       while (true) {
-        final ops = await _outbox.take(limit: _config.pageSize);
+        final ops = await _outbox.take(
+          limit: _config.pageSize,
+          kinds: kinds,
+          maxTryCountExclusive: _config.maxOutboxTryCount,
+        );
         if (ops.isEmpty) break;
 
         final result = await _pushBatch(ops);
 
         final successOpIds = <String>[];
         final conflictOps = <Op, PushConflict>{};
+        final failed = <String, String>{};
+        var hadPushErrors = false;
+        var batchSuccessCount = 0;
+        var batchErrorCount = 0;
+        var batchConflictCount = 0;
 
         for (final opResult in result.results) {
           final op = ops.firstWhere((o) => o.opId == opResult.opId);
@@ -79,6 +94,7 @@ class PushService {
             case PushSuccess():
               successOpIds.add(opResult.opId);
               counters.pushed++;
+              batchSuccessCount++;
               _events.add(
                 OperationPushedEvent(
                   opId: op.opId,
@@ -90,13 +106,18 @@ class PushService {
 
             case final PushConflict conflict:
               counters.conflicts++;
+              batchConflictCount++;
               conflictOps[op] = conflict;
 
             case PushNotFound():
               successOpIds.add(opResult.opId);
+              batchSuccessCount++;
 
             case final PushError error:
               counters.errors++;
+              batchErrorCount++;
+              hadPushErrors = true;
+              failed[op.opId] = error.error.toString();
               _events.add(
                 OperationFailedEvent(
                   opId: op.opId,
@@ -109,7 +130,19 @@ class PushService {
           }
         }
 
+        _events.add(
+          PushBatchProcessedEvent(
+            batchSize: ops.length,
+            successCount: batchSuccessCount,
+            errorCount: batchErrorCount,
+            conflictCount: batchConflictCount,
+          ),
+        );
+
         await _outbox.ack(successOpIds);
+        if (failed.isNotEmpty) {
+          await _outbox.recordFailures(failed);
+        }
 
         for (final entry in conflictOps.entries) {
           final result = await _conflictService.resolve(entry.key, entry.value);
@@ -132,6 +165,12 @@ class PushService {
                 .map((op) => op.opId),
           );
         }
+
+        // Do not spin on the same failed operations in a single sync run.
+        // Leave unresolved items in outbox for the next sync attempt.
+        if (hadPushErrors) {
+          break;
+        }
       }
     } on SyncException {
       rethrow;
@@ -148,6 +187,10 @@ class PushService {
   }
 
   Future<BatchPushResult> _pushBatch(List<Op> ops) async {
+    if (!_config.retryTransportErrorsInEngine) {
+      return _transport.push(ops);
+    }
+
     int attempt = 0;
     while (true) {
       try {

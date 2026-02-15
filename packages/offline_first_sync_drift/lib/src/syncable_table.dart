@@ -87,3 +87,35 @@ class SyncableTable<T> {
     );
   }
 }
+
+/// Sugar for concise table registration.
+extension SyncTableRegistrationExtension<T> on TableInfo<Table, T> {
+  /// Create [SyncableTable] from a Drift table reference.
+  ///
+  /// Defaults [kind] to `actualTableName` when omitted.
+  /// Requires explicit [getId] and [getUpdatedAt] to avoid runtime reflection
+  /// fallbacks and fail fast during setup.
+  SyncableTable<T> syncTable({
+    String? kind,
+    required T Function(Map<String, dynamic> json) fromJson,
+    required Map<String, dynamic> Function(T entity) toJson,
+    Insertable<T> Function(T entity)? toInsertable,
+    required String Function(T entity) getId,
+    required DateTime Function(T entity) getUpdatedAt,
+  }) {
+    final resolvedKind = (kind ?? actualTableName).trim();
+    if (resolvedKind.isEmpty) {
+      throw ArgumentError.value(kind, 'kind', 'kind must not be empty');
+    }
+
+    return SyncableTable<T>(
+      kind: resolvedKind,
+      table: this,
+      fromJson: fromJson,
+      toJson: toJson,
+      toInsertable: toInsertable,
+      getId: getId,
+      getUpdatedAt: getUpdatedAt,
+    );
+  }
+}

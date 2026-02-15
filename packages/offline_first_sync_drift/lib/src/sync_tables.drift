@@ -7,5 +7,6 @@
 -- )
 
 import 'tables/outbox.dart';
+import 'tables/outbox_meta.dart';
 import 'tables/cursors.dart';
 

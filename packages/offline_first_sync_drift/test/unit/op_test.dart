@@ -182,7 +182,10 @@ void main() {
 
       expect(op.payloadJson['title'], equals('Document'));
       expect(op.payloadJson['metadata'], isA<Map<String, dynamic>>());
-      expect((op.payloadJson['metadata'] as Map<String, dynamic>)['tags'], isA<List<dynamic>>());
+      expect(
+        (op.payloadJson['metadata'] as Map<String, dynamic>)['tags'],
+        isA<List<dynamic>>(),
+      );
       expect(op.payloadJson['content'], isNull);
       expect(op.payloadJson['version'], equals(1));
       expect(op.payloadJson['active'], isTrue);

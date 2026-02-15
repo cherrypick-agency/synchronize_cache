@@ -44,12 +44,15 @@ abstract final class TableColumns {
   static const tryCount = 'try_count';
   static const baseUpdatedAt = 'base_updated_at';
   static const changedFields = 'changed_fields';
+  static const lastTriedAt = 'last_tried_at';
+  static const lastError = 'last_error';
   static const lastId = 'last_id';
 }
 
 /// Table names.
 abstract final class TableNames {
   static const syncOutbox = 'sync_outbox';
+  static const syncOutboxMeta = 'sync_outbox_meta';
   static const syncCursors = 'sync_cursors';
 }
 

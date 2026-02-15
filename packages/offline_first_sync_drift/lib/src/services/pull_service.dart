@@ -115,6 +115,13 @@ class PullService<DB extends GeneratedDatabase> {
         await _cursorService.set(kind, Cursor(ts: since, lastId: afterId));
 
         done += page.items.length;
+        _events.add(
+          PullPageProcessedEvent(
+            kind: kind,
+            pageSize: page.items.length,
+            totalDone: done,
+          ),
+        );
         _events.add(SyncProgress(SyncPhase.pull, done, done));
 
         token = page.nextPageToken;

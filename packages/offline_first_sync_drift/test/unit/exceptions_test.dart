@@ -23,7 +23,11 @@ void main() {
     test('creates with message, cause and stack trace', () {
       final cause = Exception('DNS error');
       final stackTrace = StackTrace.current;
-      final exception = NetworkException('DNS lookup failed', cause, stackTrace);
+      final exception = NetworkException(
+        'DNS lookup failed',
+        cause,
+        stackTrace,
+      );
 
       expect(exception.message, equals('DNS lookup failed'));
       expect(exception.cause, equals(cause));
@@ -51,7 +55,10 @@ void main() {
     test('toString without cause', () {
       const exception = NetworkException('Connection failed');
 
-      expect(exception.toString(), equals('NetworkException: Connection failed'));
+      expect(
+        exception.toString(),
+        equals('NetworkException: Connection failed'),
+      );
     });
 
     test('toString with cause', () {
@@ -83,10 +90,7 @@ void main() {
     });
 
     test('creates with status code', () {
-      const exception = TransportException(
-        'Server error',
-        statusCode: 500,
-      );
+      const exception = TransportException('Server error', statusCode: 500);
 
       expect(exception.message, equals('Server error'));
       expect(exception.statusCode, equals(500));
@@ -139,10 +143,7 @@ void main() {
     });
 
     test('toString with status code', () {
-      const exception = TransportException(
-        'Server error',
-        statusCode: 503,
-      );
+      const exception = TransportException('Server error', statusCode: 503);
 
       expect(
         exception.toString(),
@@ -264,11 +265,7 @@ void main() {
     });
 
     test('is SyncException', () {
-      const exception = ConflictException(
-        'Test',
-        kind: 'test',
-        entityId: 'id',
-      );
+      const exception = ConflictException('Test', kind: 'test', entityId: 'id');
 
       expect(exception, isA<SyncException>());
     });
@@ -284,10 +281,7 @@ void main() {
     });
 
     test('creates with phase', () {
-      const exception = SyncOperationException(
-        'Push error',
-        phase: 'push',
-      );
+      const exception = SyncOperationException('Push error', phase: 'push');
 
       expect(exception.phase, equals('push'));
     });

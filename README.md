@@ -192,12 +192,13 @@ final transport = RestTransport(
   token: () async => 'Bearer ${await getToken()}',
 );
 
-final dailyFeelingSync = SyncableTable<DailyFeeling>(
+final dailyFeelingSync = db.dailyFeelings.syncTable<DailyFeeling>(
   kind: 'daily_feeling',
-  table: db.dailyFeelings,
   fromJson: DailyFeeling.fromJson,
   toJson: (e) => e.toJson(),
   toInsertable: (e) => e.toInsertable(),
+  getId: (e) => e.id,
+  getUpdatedAt: (e) => e.updatedAt,
 );
 
 final engine = SyncEngine(
@@ -347,6 +348,12 @@ await writer.replaceAndEnqueue(
   baseUpdatedAt: updated.updatedAt,
   changedFields: {'mood', 'notes'},
 );
+
+await writer.replaceAndEnqueueDiff(
+  before: previous,
+  after: updated,
+  baseUpdatedAt: previous.updatedAt,
+);
 ```
 
 ### Synchronization
@@ -363,6 +370,25 @@ engine.stopAuto();
 
 // For specific tables only
 await engine.sync(kinds: {'daily_feeling', 'health_record'});
+
+// Independent push/pull filters
+await engine.sync(
+  pushKinds: {'daily_feeling'},
+  pullKinds: {'daily_feeling', 'health_record'},
+);
+```
+
+Optional app-flow automation:
+
+```dart
+final coordinator = SyncCoordinator(
+  engine: engine,
+  pullOnStartup: true,
+  autoInterval: const Duration(minutes: 5),
+  pushOnOutboxChanges: true,
+);
+
+await coordinator.start();
 ```
 
 ---
@@ -500,6 +526,14 @@ Quick reminder:
 - on PUT, validate `_baseUpdatedAt`, return `409` with current data, and support `X-Force-Update` + `X-Idempotency-Key`;
 - return lists as `{ "items": [...], "nextPageToken": "..." }`, building the cursor from `(updatedAt, id)`;
 - refer to the e2e example in `packages/offline_first_sync_drift_rest/test/e2e` for a reference implementation.
+
+---
+
+## Migration guide
+
+For API migration in the current release and schema migration patterns, see:
+
+- [`docs/migration.md`](docs/migration.md)
 
 ---
 

@@ -5,10 +5,12 @@ import 'package:test/test.dart';
 void main() {
   group('PullPage', () {
     test('creates with items only', () {
-      final page = PullPage(items: [
-        {'id': '1', 'name': 'Item 1'},
-        {'id': '2', 'name': 'Item 2'},
-      ]);
+      final page = PullPage(
+        items: [
+          {'id': '1', 'name': 'Item 1'},
+          {'id': '2', 'name': 'Item 2'},
+        ],
+      );
 
       expect(page.items, hasLength(2));
       expect(page.nextPageToken, isNull);
@@ -34,16 +36,18 @@ void main() {
     });
 
     test('items can contain complex objects', () {
-      final page = PullPage(items: [
-        {
-          'id': '1',
-          'metadata': {'key': 'value'},
-          'tags': ['a', 'b'],
-          'count': 42,
-          'active': true,
-          'nullable': null,
-        },
-      ]);
+      final page = PullPage(
+        items: [
+          {
+            'id': '1',
+            'metadata': {'key': 'value'},
+            'tags': ['a', 'b'],
+            'count': 42,
+            'active': true,
+            'nullable': null,
+          },
+        ],
+      );
 
       final item = page.items.first;
       expect(item['id'], equals('1'));
@@ -57,10 +61,7 @@ void main() {
 
   group('OpPushResult', () {
     test('creates with success result', () {
-      const result = OpPushResult(
-        opId: 'op-123',
-        result: PushSuccess(),
-      );
+      const result = OpPushResult(opId: 'op-123', result: PushSuccess());
 
       expect(result.opId, equals('op-123'));
       expect(result.result, isA<PushSuccess>());
@@ -86,10 +87,7 @@ void main() {
     });
 
     test('creates with not found result', () {
-      const result = OpPushResult(
-        opId: 'op-789',
-        result: PushNotFound(),
-      );
+      const result = OpPushResult(opId: 'op-789', result: PushNotFound());
 
       expect(result.isSuccess, isFalse);
       expect(result.isConflict, isFalse);
@@ -121,11 +119,13 @@ void main() {
     });
 
     test('creates with all success results', () {
-      const result = BatchPushResult(results: [
-        OpPushResult(opId: 'op-1', result: PushSuccess()),
-        OpPushResult(opId: 'op-2', result: PushSuccess()),
-        OpPushResult(opId: 'op-3', result: PushSuccess()),
-      ]);
+      const result = BatchPushResult(
+        results: [
+          OpPushResult(opId: 'op-1', result: PushSuccess()),
+          OpPushResult(opId: 'op-2', result: PushSuccess()),
+          OpPushResult(opId: 'op-3', result: PushSuccess()),
+        ],
+      );
 
       expect(result.allSuccess, isTrue);
       expect(result.hasConflicts, isFalse);
@@ -136,18 +136,20 @@ void main() {
     });
 
     test('creates with mixed results', () {
-      final result = BatchPushResult(results: [
-        const OpPushResult(opId: 'op-1', result: PushSuccess()),
-        OpPushResult(
-          opId: 'op-2',
-          result: PushConflict(
-            serverData: {},
-            serverTimestamp: DateTime.utc(2024, 1, 1),
+      final result = BatchPushResult(
+        results: [
+          const OpPushResult(opId: 'op-1', result: PushSuccess()),
+          OpPushResult(
+            opId: 'op-2',
+            result: PushConflict(
+              serverData: {},
+              serverTimestamp: DateTime.utc(2024, 1, 1),
+            ),
           ),
-        ),
-        const OpPushResult(opId: 'op-3', result: PushError('Error')),
-        const OpPushResult(opId: 'op-4', result: PushNotFound()),
-      ]);
+          const OpPushResult(opId: 'op-3', result: PushError('Error')),
+          const OpPushResult(opId: 'op-4', result: PushNotFound()),
+        ],
+      );
 
       expect(result.allSuccess, isFalse);
       expect(result.hasConflicts, isTrue);
@@ -158,23 +160,25 @@ void main() {
     });
 
     test('conflicts returns only conflict results', () {
-      final result = BatchPushResult(results: [
-        const OpPushResult(opId: 'op-1', result: PushSuccess()),
-        OpPushResult(
-          opId: 'op-2',
-          result: PushConflict(
-            serverData: {'name': 'Server1'},
-            serverTimestamp: DateTime.utc(2024, 1, 1),
+      final result = BatchPushResult(
+        results: [
+          const OpPushResult(opId: 'op-1', result: PushSuccess()),
+          OpPushResult(
+            opId: 'op-2',
+            result: PushConflict(
+              serverData: {'name': 'Server1'},
+              serverTimestamp: DateTime.utc(2024, 1, 1),
+            ),
           ),
-        ),
-        OpPushResult(
-          opId: 'op-3',
-          result: PushConflict(
-            serverData: {'name': 'Server2'},
-            serverTimestamp: DateTime.utc(2024, 1, 2),
+          OpPushResult(
+            opId: 'op-3',
+            result: PushConflict(
+              serverData: {'name': 'Server2'},
+              serverTimestamp: DateTime.utc(2024, 1, 2),
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
 
       final conflicts = result.conflicts.toList();
       expect(conflicts, hasLength(2));
@@ -183,17 +187,19 @@ void main() {
     });
 
     test('successes returns only success results', () {
-      final result = BatchPushResult(results: [
-        const OpPushResult(opId: 'op-1', result: PushSuccess()),
-        OpPushResult(
-          opId: 'op-2',
-          result: PushConflict(
-            serverData: {},
-            serverTimestamp: DateTime.utc(2024, 1, 1),
+      final result = BatchPushResult(
+        results: [
+          const OpPushResult(opId: 'op-1', result: PushSuccess()),
+          OpPushResult(
+            opId: 'op-2',
+            result: PushConflict(
+              serverData: {},
+              serverTimestamp: DateTime.utc(2024, 1, 1),
+            ),
           ),
-        ),
-        const OpPushResult(opId: 'op-3', result: PushSuccess()),
-      ]);
+          const OpPushResult(opId: 'op-3', result: PushSuccess()),
+        ],
+      );
 
       final successes = result.successes.toList();
       expect(successes, hasLength(2));
@@ -202,11 +208,13 @@ void main() {
     });
 
     test('errors returns only error results', () {
-      const result = BatchPushResult(results: [
-        OpPushResult(opId: 'op-1', result: PushError('Error 1')),
-        OpPushResult(opId: 'op-2', result: PushSuccess()),
-        OpPushResult(opId: 'op-3', result: PushError('Error 2')),
-      ]);
+      const result = BatchPushResult(
+        results: [
+          OpPushResult(opId: 'op-1', result: PushError('Error 1')),
+          OpPushResult(opId: 'op-2', result: PushSuccess()),
+          OpPushResult(opId: 'op-3', result: PushError('Error 2')),
+        ],
+      );
 
       final errors = result.errors.toList();
       expect(errors, hasLength(2));
@@ -341,21 +349,17 @@ void main() {
         }
       }
 
-      expect(labels, equals([
-        'success: 1',
-        'conflict: 2',
-        'not_found',
-        'error: Error',
-      ]));
+      expect(
+        labels,
+        equals(['success: 1', 'conflict: 2', 'not_found', 'error: Error']),
+      );
     });
   });
 
   group('FetchResult sealed class', () {
     group('FetchSuccess', () {
       test('creates with data only', () {
-        const result = FetchSuccess(
-          data: {'id': '1', 'name': 'Item'},
-        );
+        const result = FetchSuccess(data: {'id': '1', 'name': 'Item'});
 
         expect(result, isA<FetchResult>());
         expect(result.data, equals({'id': '1', 'name': 'Item'}));
@@ -363,10 +367,7 @@ void main() {
       });
 
       test('creates with data and version', () {
-        const result = FetchSuccess(
-          data: {'id': '1'},
-          version: 'v10',
-        );
+        const result = FetchSuccess(data: {'id': '1'}, version: 'v10');
 
         expect(result.data, isNotNull);
         expect(result.version, equals('v10'));
@@ -432,11 +433,7 @@ void main() {
         }
       }
 
-      expect(labels, equals([
-        'success: 1',
-        'not_found',
-        'error: Error',
-      ]));
+      expect(labels, equals(['success: 1', 'not_found', 'error: Error']));
     });
   });
 }

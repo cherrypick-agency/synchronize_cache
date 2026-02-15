@@ -38,10 +38,10 @@ void main() {
         localFields: {'name'},
         serverFields: {'updatedAt'},
       );
-      const resolution = AcceptMerged(
-        {'name': 'Local', 'updatedAt': '2024-01-01'},
-        mergeInfo: mergeInfo,
-      );
+      const resolution = AcceptMerged({
+        'name': 'Local',
+        'updatedAt': '2024-01-01',
+      }, mergeInfo: mergeInfo);
 
       expect(resolution.mergeInfo, isNotNull);
       expect(resolution.mergeInfo!.localFields, contains('name'));
@@ -71,10 +71,7 @@ void main() {
     });
 
     test('creates with empty sets', () {
-      const info = MergeInfo(
-        localFields: {},
-        serverFields: {},
-      );
+      const info = MergeInfo(localFields: {}, serverFields: {});
 
       expect(info.localFields, isEmpty);
       expect(info.serverFields, isEmpty);
@@ -99,7 +96,10 @@ void main() {
       expect(conflict.localData, equals({'name': 'Local Name'}));
       expect(conflict.serverData, equals({'name': 'Server Name'}));
       expect(conflict.localTimestamp, equals(DateTime.utc(2024, 1, 15, 10, 0)));
-      expect(conflict.serverTimestamp, equals(DateTime.utc(2024, 1, 15, 11, 0)));
+      expect(
+        conflict.serverTimestamp,
+        equals(DateTime.utc(2024, 1, 15, 11, 0)),
+      );
       expect(conflict.serverVersion, isNull);
       expect(conflict.changedFields, isNull);
     });
@@ -227,18 +227,22 @@ void main() {
     test('handles deeply nested objects', () {
       final local = <String, Object?>{
         'level1': {
-          'level2': {'level3': {'value': 'local'}},
+          'level2': {
+            'level3': {'value': 'local'},
+          },
         },
       };
       final server = <String, Object?>{
         'level1': {
-          'level2': {'level3': {'other': 'server'}},
+          'level2': {
+            'level3': {'other': 'server'},
+          },
         },
       };
 
       final result = ConflictUtils.deepMerge(local, server);
-      final level3 = ((result['level1']! as Map)['level2']! as Map)['level3']!
-          as Map;
+      final level3 =
+          ((result['level1']! as Map)['level2']! as Map)['level3']! as Map;
 
       expect(level3['value'], equals('local'));
       expect(level3['other'], equals('server'));
@@ -391,10 +395,7 @@ void main() {
     });
 
     test('returns correct localFields tracking', () {
-      final local = <String, Object?>{
-        'name': 'Local',
-        'count': 10,
-      };
+      final local = <String, Object?>{'name': 'Local', 'count': 10};
       final server = <String, Object?>{
         'name': 'Server',
         'count': 5,
@@ -408,13 +409,8 @@ void main() {
     });
 
     test('returns correct serverFields tracking', () {
-      final local = <String, Object?>{
-        'name': 'Local',
-      };
-      final server = <String, Object?>{
-        'name': 'Server',
-        'serverOnly': 'value',
-      };
+      final local = <String, Object?>{'name': 'Local'};
+      final server = <String, Object?>{'name': 'Server', 'serverOnly': 'value'};
 
       final result = ConflictUtils.preservingMerge(local, server);
 
@@ -422,10 +418,7 @@ void main() {
     });
 
     test('empty changedFields means no local fields applied', () {
-      final local = <String, Object?>{
-        'title': 'Local',
-        'desc': 'Local Desc',
-      };
+      final local = <String, Object?>{'title': 'Local', 'desc': 'Local Desc'};
       final server = <String, Object?>{
         'title': 'Server',
         'desc': 'Server Desc',
@@ -442,10 +435,7 @@ void main() {
     });
 
     test('null changedFields means all local fields applied', () {
-      final local = <String, Object?>{
-        'title': 'Local',
-        'desc': 'Local Desc',
-      };
+      final local = <String, Object?>{'title': 'Local', 'desc': 'Local Desc'};
       final server = <String, Object?>{
         'title': 'Server',
         'desc': 'Server Desc',
@@ -470,9 +460,7 @@ void main() {
     });
 
     test('extracts DateTime from updated_at', () {
-      final data = <String, Object?>{
-        'updated_at': DateTime.utc(2024, 2, 20),
-      };
+      final data = <String, Object?>{'updated_at': DateTime.utc(2024, 2, 20)};
 
       final result = ConflictUtils.extractTimestamp(data);
 
@@ -480,9 +468,7 @@ void main() {
     });
 
     test('parses string timestamp', () {
-      final data = <String, Object?>{
-        'updatedAt': '2024-03-15T14:30:00.000Z',
-      };
+      final data = <String, Object?>{'updatedAt': '2024-03-15T14:30:00.000Z'};
 
       final result = ConflictUtils.extractTimestamp(data);
 
@@ -501,9 +487,7 @@ void main() {
     });
 
     test('returns null for invalid timestamp string', () {
-      final data = <String, Object?>{
-        'updatedAt': 'not a date',
-      };
+      final data = <String, Object?>{'updatedAt': 'not a date'};
 
       final result = ConflictUtils.extractTimestamp(data);
 
