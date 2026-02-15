@@ -67,6 +67,24 @@ Future<void> main() async {
         stdout.writeln('Operation failed: $k/$id - $e');
       case FullResyncStarted(reason: final r):
         stdout.writeln('Full resync started: $r');
+      case PullPageProcessedEvent(
+        kind: final kind,
+        pageSize: final pageSize,
+        totalDone: final totalDone,
+      ):
+        stdout.writeln(
+          'Pull page processed: $kind - page size: $pageSize, total: $totalDone',
+        );
+      case PushBatchProcessedEvent(
+        batchSize: final batchSize,
+        successCount: final successCount,
+        errorCount: final errorCount,
+        conflictCount: final conflictCount,
+      ):
+        stdout.writeln(
+          'Push batch processed: '
+          'batch: $batchSize, success: $successCount, errors: $errorCount, conflicts: $conflictCount',
+        );
     }
   });
 
