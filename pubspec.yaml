@@ -10,6 +10,8 @@ workspace:
   - example
   - example/todo_simple/backend
   - example/todo_simple/frontend
+  - example/todo_simple_new/backend
+  - example/todo_simple_new/frontend
   - example/todo_advanced/backend
   - example/todo_advanced/frontend
 dev_dependencies:

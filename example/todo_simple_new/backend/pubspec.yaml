@@ -1,0 +1,21 @@
+name: todo_simple_new_backend
+description: Backend for TODO simple new demo - demonstrates offline_first_sync_drift
+version: 1.0.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  dart_frog: ^1.2.6
+  json_annotation: ^4.9.0
+  uuid: ^4.5.2
+
+dev_dependencies:
+  dart_frog_test: ^0.1.2
+  build_runner: ^2.4.15
+  json_serializable: ^6.9.4
+  test: ^1.25.15
+  mocktail: ^1.0.4
+  lints: ^6.0.0

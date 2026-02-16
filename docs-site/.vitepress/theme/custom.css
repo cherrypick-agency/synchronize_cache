@@ -1,0 +1,139 @@
+:root {
+  --vp-nav-bg-color: rgba(255, 255, 255, 0.5);
+}
+
+.dark {
+  --vp-nav-bg-color: rgba(30, 30, 32, 0.5);
+}
+
+.VPNavBar {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* DartPad interactive playground */
+
+.dartpad-wrapper {
+  margin: 16px 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dartpad-code div[class*="language-"] {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+}
+
+.dartpad-code pre {
+  padding-left: 0 !important;
+}
+
+.dartpad-code code {
+  padding: 0 !important;
+}
+
+.dartpad-code .copy {
+  /* Hide VitePress copy button — DartPad toolbar has its own */
+  display: none;
+}
+
+/* Line numbers — hidden by default, visible on hover, never copied */
+
+.dartpad-code code {
+  counter-reset: dartpad-line;
+}
+
+.dartpad-code .line::before {
+  counter-increment: dartpad-line;
+  content: counter(dartpad-line);
+  display: inline-block;
+  width: 2ch;
+  margin-left: 2px;
+  margin-right: 8px;
+  text-align: right;
+  color: transparent;
+  user-select: none;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.dartpad-code:hover .line::before {
+  color: var(--vp-c-text-4, rgba(128, 128, 128, 0.4));
+}
+
+.dartpad-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+}
+
+.dartpad-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-2);
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+
+.dartpad-btn:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+  background: var(--vp-c-bg-mute);
+}
+
+.dartpad-btn:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.dartpad-run {
+  color: var(--vp-c-brand-1);
+}
+
+.dartpad-active {
+  display: flex;
+  flex-direction: column;
+}
+
+.dartpad-active-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--vp-c-bg-soft);
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.dartpad-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vp-c-text-2);
+}
+
+.dartpad-iframe {
+  width: 100%;
+  border: none;
+  display: block;
+}
+
+.dartpad-wrapper,
+.dartpad-toolbar,
+.dartpad-active-toolbar {
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+@media (max-width: 640px) {
+  .dartpad-toolbar {
+    flex-wrap: wrap;
+  }
+}
