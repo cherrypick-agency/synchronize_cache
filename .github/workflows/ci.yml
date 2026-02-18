@@ -48,6 +48,14 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
         working-directory: example/todo_advanced/backend
 
+      - name: Generate code (todo_simple_new/frontend)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: example/todo_simple_new/frontend
+
+      - name: Generate code (todo_simple_new/backend)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: example/todo_simple_new/backend
+
       - name: Generate code (offline_first_sync_drift_rest)
         run: dart run build_runner build --delete-conflicting-outputs
         working-directory: packages/offline_first_sync_drift_rest

@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import { useData } from 'vitepress'
@@ -11,9 +11,15 @@ import './custom.css'
 import '../generated/api-styles.css'
 import DartPad from './components/DartPad.vue'
 import ApiBreadcrumb from './components/ApiBreadcrumb.vue'
+import SyncAnimation from './components/SyncAnimation.vue'
 
 export default {
   extends: DefaultTheme,
+  Layout() {
+    return h(DefaultTheme.Layout, null, {
+      'home-hero-image': () => h(SyncAnimation),
+    })
+  },
   enhanceApp({ app }) {
     app.component('DartPad', DartPad)
     app.component('ApiBreadcrumb', ApiBreadcrumb)

@@ -1,14 +1,99 @@
 :root {
   --vp-nav-bg-color: rgba(255, 255, 255, 0.5);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #FF6D00 0%, #E65100 40%, #FF9100 100%);
 }
 
 .dark {
   --vp-nav-bg-color: rgba(30, 30, 32, 0.5);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #FFAB40 0%, #FF6D00 50%, #FFD180 100%);
 }
 
+/* Gradient text on hero name */
+.VPHero .name.clip {
+  background: var(--vp-home-hero-name-background) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Glassmorphism navbar */
 .VPNavBar {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+/* Animated gradient glow behind hero */
+.VPHero {
+  position: relative;
+  z-index: 0;
+}
+
+.VPHero::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 109, 0, 0.12) 0%,
+    rgba(255, 145, 0, 0.08) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(60px);
+  animation: hero-glow 6s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.dark .VPHero::before {
+  background: radial-gradient(
+    circle,
+    rgba(255, 171, 64, 0.1) 0%,
+    rgba(255, 109, 0, 0.06) 40%,
+    transparent 70%
+  );
+}
+
+@keyframes hero-glow {
+  0% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.15);
+  }
+}
+
+/* Feature cards: icon + title on same line */
+.VPFeature .box {
+  display: grid !important;
+  grid-template-columns: 48px 1fr !important;
+  grid-template-rows: auto auto !important;
+  column-gap: 12px !important;
+  align-items: center !important;
+}
+
+.VPFeature .box > .icon {
+  grid-row: 1 !important;
+  grid-column: 1 !important;
+  margin-bottom: 0 !important;
+}
+
+.VPFeature .box > .title {
+  grid-row: 1 !important;
+  grid-column: 2 !important;
+}
+
+.VPFeature .box > .details {
+  grid-row: 2 !important;
+  grid-column: 1 / -1 !important;
 }
 
 /* DartPad interactive playground */
