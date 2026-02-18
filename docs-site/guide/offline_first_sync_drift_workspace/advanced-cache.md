@@ -1,3 +1,6 @@
+---
+sidebar_position: 5
+---
 # Advanced Cache
 
 A guide for experienced developers: conflict resolution, field-level merge, retry strategies, and sync monitoring.
@@ -10,10 +13,10 @@ A guide for experienced developers: conflict resolution, field-level merge, retr
 
 Simple cache is sufficient for apps with a single device and short offline periods. Advanced settings are needed when:
 
-- **Multiple devices** -- the user edits data on a phone and tablet simultaneously
-- **Collaboration** -- multiple users edit the same entity
-- **Extended offline** -- the device can be offline for hours or days, during which server data changes
-- **Data criticality** -- losing user changes is unacceptable (medical records, finances, notes)
+- **Multiple devices** — the user edits data on a phone and tablet simultaneously
+- **Collaboration** — multiple users edit the same entity
+- **Extended offline** — the device can be offline for hours or days, during which server data changes
+- **Data criticality** — losing user changes is unacceptable (medical records, finances, notes)
 
 In all these scenarios, when pushing local changes, the server may return a **conflict**: the data you are trying to update has already been modified by someone else.
 
@@ -29,13 +32,13 @@ final config = SyncConfig(
 );
 ```
 
-### `autoPreserve` -- smart merge without data loss (default)
+### `autoPreserve` — smart merge without data loss (default)
 
 The most advanced strategy. Uses `ConflictUtils.preservingMerge`, which:
 
 1. Takes server data as the base
-2. If `changedFields` are specified -- applies **only the changed fields** from local data
-3. If the local value is not `null` but the server value is `null` -- takes the local value
+2. If `changedFields` are specified — applies **only the changed fields** from local data
+3. If the local value is not `null` but the server value is `null` — takes the local value
 4. Lists are merged (union by `id` for objects, by value for primitives)
 5. Nested Maps are merged recursively
 6. System fields (`id`, `updatedAt`, `createdAt`, `deletedAt`) are always taken from the server
@@ -51,11 +54,11 @@ final engine = SyncEngine(
 );
 ```
 
-**When to use:** In most applications. A safe default strategy -- no data is lost.
+**When to use:** In most applications. A safe default strategy — no data is lost.
 
 **Example scenario:** A user changed the `title` of a task while offline, and another user changed the `priority`. With `autoPreserve`, the result will contain both changes.
 
-### `serverWins` -- server is always right
+### `serverWins` — server is always right
 
 The simplest strategy. On conflict, local changes are discarded and server data is applied.
 
@@ -69,7 +72,7 @@ const SyncConfig(
 
 **Risks:** Local user changes will be lost without warning.
 
-### `clientWins` -- client is always right
+### `clientWins` — client is always right
 
 On conflict, the operation is retried with a forced push via `forcePush`. Server data is overwritten.
 
@@ -83,7 +86,7 @@ const SyncConfig(
 
 **Risks:** Other users' changes will be lost. If `forcePush` returns a conflict again, there will be up to `maxConflictRetries` retry attempts.
 
-### `lastWriteWins` -- the latest timestamp wins
+### `lastWriteWins` — the latest timestamp wins
 
 Compares `localTimestamp` and `serverTimestamp`. The record with the later timestamp wins.
 
@@ -97,7 +100,7 @@ const SyncConfig(
 
 **Important:** Requires synchronized clocks. If the client clock is off, the result will be incorrect.
 
-### `merge` -- custom merge
+### `merge` — custom merge
 
 Calls `MergeFunction` to combine data. If no function is provided, `ConflictUtils.defaultMerge` is used.
 
@@ -124,9 +127,9 @@ SyncConfig(
 
 **When to use:** When the merge logic is specific to your domain model.
 
-### `manual` -- manual resolution via callback
+### `manual` — manual resolution via callback
 
-Calls `ConflictResolver` -- an async callback that receives a `Conflict` object and returns a `ConflictResolution`.
+Calls `ConflictResolver` — an async callback that receives a `Conflict` object and returns a `ConflictResolution`.
 
 ```dart
 SyncConfig(
@@ -245,16 +248,16 @@ final engine = SyncEngine(
 If no configuration is specified for a table, the global strategy from `SyncConfig` is used.
 
 Each `TableConflictConfig` can override:
-- `strategy` -- strategy for this table
-- `resolver` -- custom `ConflictResolver` (for the `manual` strategy)
-- `mergeFunction` -- custom merge function (for the `merge` strategy)
-- `timestampField` -- field name for time comparison (default is `'updatedAt'`)
+- `strategy` — strategy for this table
+- `resolver` — custom `ConflictResolver` (for the `manual` strategy)
+- `mergeFunction` — custom merge function (for the `merge` strategy)
+- `timestampField` — field name for time comparison (default is `'updatedAt'`)
 
 ---
 
 ## Custom ConflictResolver
 
-For the `manual` strategy, you implement a `ConflictResolver` -- a function with the following signature:
+For the `manual` strategy, you implement a `ConflictResolver` — a function with the following signature:
 
 ```dart
 typedef ConflictResolver = Future<ConflictResolution> Function(Conflict conflict);
@@ -406,8 +409,8 @@ final stats = await engine.fullResync(clearData: false);
 ```
 
 The `clearData` parameter:
-- `false` (default) -- cursors are reset, data is preserved, pull applies data on top (insertOrReplace)
-- `true` -- local data is cleared before pull
+- `false` (default) — cursors are reset, data is preserved, pull applies data on top (insertOrReplace)
+- `true` — local data is cleared before pull
 
 ### Full Resync Workflow
 

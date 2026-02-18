@@ -8,7 +8,7 @@ export default withMermaid(defineConfig({
   description: 'Offline-first synchronization library for Dart/Flutter built on Drift ORM',
   themeConfig: {
     nav: [
-      { text: 'Guide', link: '/guide/_generated/offline_first_sync_drift_workspace/quick-start' },
+      { text: 'Guide', link: '/guide/offline_first_sync_drift_workspace/quick-start' },
       { text: 'API Reference', link: '/api/' },
       { text: 'vs Alternatives', link: '/comparison' },
       {

@@ -1,3 +1,6 @@
+---
+sidebar_position: 10
+---
 # Performance and Optimization
 
 Guide to tuning sync engine performance. All default values and parameters are taken directly from the source code.
@@ -198,9 +201,9 @@ Operations are split into chunks of `batchSize`. Each chunk is sent as a single 
 
 The retry system operates on **two independent levels**. This is important for understanding error behavior:
 
-1. **RestTransport._withRetry()** (HTTP level) -- retries individual HTTP requests on 429/5xx.
+1. **RestTransport._withRetry()** (HTTP level) — retries individual HTTP requests on 429/5xx.
    Respects the `Retry-After` header from the server. Wraps every network call.
-2. **PushService._pushBatch()** (sync engine level) -- retries the entire batch on exception.
+2. **PushService._pushBatch()** (sync engine level) — retries the entire batch on exception.
    Triggers when RestTransport has exhausted its retries and thrown an exception.
 
 In the worst case, the total number of HTTP requests per operation:
@@ -357,7 +360,7 @@ Full resync is expensive because:
 2. It may clear local tables (if `clearData: true`)
 3. It loads all records from the server page by page
 
-For a table with 100,000 records and `pageSize: 500` -- that is a minimum of 200 HTTP requests.
+For a table with 100,000 records and `pageSize: 500` — that is a minimum of 200 HTTP requests.
 
 ### Manual Full Resync
 
@@ -432,11 +435,11 @@ engine.events.listen((event) {
 ### Tracking Push/Pull Statistics
 
 `SyncStats` provides counters:
-- `pushed` -- number of successfully pushed operations
-- `pulled` -- number of received records
-- `conflicts` -- number of detected conflicts
-- `conflictsResolved` -- number of successfully resolved conflicts
-- `errors` -- number of errors
+- `pushed` — number of successfully pushed operations
+- `pulled` — number of received records
+- `conflicts` — number of detected conflicts
+- `conflictsResolved` — number of successfully resolved conflicts
+- `errors` — number of errors
 
 ### Detecting Slow Syncs
 
@@ -606,7 +609,7 @@ final transport = RestTransport(
 | `pageSize` | 200 | 500 | 2000 | 100 |
 | `pushConcurrency` | 1-3 | 3-5 | 5-10 | 1 |
 | `enableBatch` | `true` | `true` | `true` | `false` |
-| `batchSize` | 50 | 100 | 200 | -- |
+| `batchSize` | 50 | 100 | 200 | — |
 | `maxPushRetries` | 5 | 3 | 7 | 10 |
 | `backoffMin` | 1s | 1s | 500ms | 5s |
 | `backoffMax` | 2min | 1min | 30s | 10min |

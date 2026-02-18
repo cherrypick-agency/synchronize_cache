@@ -1,3 +1,6 @@
+---
+sidebar_position: 15
+---
 # Offline-First Flutter: A Practical Guide to Data Synchronization
 
 How do you build an app that works offline as smoothly as online? In this article, we'll walk through a real TODO app with offline-first architecture in Flutter.

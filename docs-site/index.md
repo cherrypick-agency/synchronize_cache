@@ -7,7 +7,7 @@ hero:
   actions:
     - theme: brand
       text: Quick Start
-      link: /guide/_generated/offline_first_sync_drift_workspace/quick-start
+      link: /guide/offline_first_sync_drift_workspace/quick-start
     - theme: alt
       text: API Reference
       link: /api/

@@ -1,3 +1,6 @@
+---
+sidebar_position: 9
+---
 # Events and exceptions: complete reference
 
 Complete reference of all event types (`SyncEvent`) and exceptions (`SyncException`)

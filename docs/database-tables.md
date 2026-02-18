@@ -1,3 +1,6 @@
+---
+sidebar_position: 2
+---
 # Database and Tables
 
 Guide to configuring a Drift database for synchronization:

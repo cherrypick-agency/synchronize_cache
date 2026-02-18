@@ -1,3 +1,6 @@
+---
+sidebar_position: 11
+---
 # Testing
 
 A guide to testing applications that use `offline_first_sync_drift`. All examples are based on real patterns from the project's test suite.
@@ -35,7 +38,7 @@ Core dependencies:
 | Package | Purpose |
 |---------|---------|
 | `test` | Testing framework |
-| `mocktail` | Class mocking (optional -- can be done manually) |
+| `mocktail` | Class mocking (optional — can be done manually) |
 | `drift` | Drift in-memory database for tests |
 
 ---
@@ -105,7 +108,7 @@ class MockTransport implements TransportAdapter {
 
 ### Mock with Conflicts
 
-For testing conflict scenarios -- push always returns `PushConflict`:
+For testing conflict scenarios — push always returns `PushConflict`:
 
 ```dart
 class ConflictingTransport implements TransportAdapter {
@@ -2386,13 +2389,13 @@ dart run coverage:format_coverage \
 
 1. **Always call `engine.dispose()`** at the end of each test to properly release `StreamController` resources.
 
-2. **Use `await Future<void>.delayed()`** after `engine.sync()` before checking events -- events may be delivered asynchronously.
+2. **Use `await Future<void>.delayed()`** after `engine.sync()` before checking events — events may be delivered asynchronously.
 
-3. **Each test gets a clean DB** via `setUp` -- this guarantees test isolation.
+3. **Each test gets a clean DB** via `setUp` — this guarantees test isolation.
 
 4. **For retry tests, use minimal backoff** (`backoffMin: Duration(milliseconds: 10)`, `backoffMultiplier: 1.0`) so tests run quickly.
 
-5. **Create specialized transports** for specific scenarios instead of a single universal mock -- the code is cleaner and more readable.
+5. **Create specialized transports** for specific scenarios instead of a single universal mock — the code is cleaner and more readable.
 
 6. **Ops can be verified via pattern matching** thanks to sealed class:
 

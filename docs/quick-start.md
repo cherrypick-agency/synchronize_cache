@@ -1,3 +1,6 @@
+---
+sidebar_position: 1
+---
 # Quick Start
 
 ## Installation
@@ -40,9 +43,9 @@ class Todos extends Table with SyncColumns {
 ```
 
 `SyncColumns` adds:
-- `updatedAt` -- `DateTimeColumn`, last update timestamp (UTC)
-- `deletedAt` -- `DateTimeColumn?`, server-side deletion timestamp
-- `deletedAtLocal` -- `DateTimeColumn?`, local deletion timestamp
+- `updatedAt` — `DateTimeColumn`, last update timestamp (UTC)
+- `deletedAt` — `DateTimeColumn?`, server-side deletion timestamp
+- `deletedAtLocal` — `DateTimeColumn?`, local deletion timestamp
 
 ## Database Setup
 
@@ -122,9 +125,9 @@ final engine = SyncEngine(
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `db` | `GeneratedDatabase` | -- | Database with `SyncDatabaseMixin` |
-| `transport` | `TransportAdapter` | -- | Transport (e.g., `RestTransport`) |
-| `tables` | `List<SyncableTable>` | -- | List of tables to sync |
+| `db` | `GeneratedDatabase` | — | Database with `SyncDatabaseMixin` |
+| `transport` | `TransportAdapter` | — | Transport (e.g., `RestTransport`) |
+| `tables` | `List<SyncableTable>` | — | List of tables to sync |
 | `config` | `SyncConfig` | `SyncConfig()` | Sync configuration |
 | `tableConflictConfigs` | `Map<String, TableConflictConfig>?` | `null` | Per-table conflict strategies |
 
@@ -132,8 +135,8 @@ final engine = SyncEngine(
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `base` | `Uri` | -- | Base API URL |
-| `token` | `Future<String> Function()` | -- | Auth token provider |
+| `base` | `Uri` | — | Base API URL |
+| `token` | `Future<String> Function()` | — | Auth token provider |
 | `client` | `http.Client?` | `http.Client()` | HTTP client |
 | `pushConcurrency` | `int` | `1` | Push request concurrency |
 | `enableBatch` | `bool` | `false` | Enable batch API |
@@ -196,7 +199,7 @@ await db.enqueue(
 
 ### Updating
 
-When updating, pass `baseUpdatedAt` -- the record's timestamp before editing. This enables conflict detection:
+When updating, pass `baseUpdatedAt` — the record's timestamp before editing. This enables conflict detection:
 
 ```dart
 final now = DateTime.now().toUtc();
@@ -224,7 +227,7 @@ await db.enqueue(
 );
 ```
 
-`changedFields` -- the set of fields the user changed. Used during merge conflicts to avoid overwriting fields that were not modified.
+`changedFields` — the set of fields the user changed. Used during merge conflicts to avoid overwriting fields that were not modified.
 
 ### Deleting
 
@@ -238,7 +241,7 @@ await db.enqueue(
 );
 ```
 
-Physical deletion from the local DB happens during pull -- the server returns a record with a populated `deletedAt`.
+Physical deletion from the local DB happens during pull — the server returns a record with a populated `deletedAt`.
 
 ### Less boilerplate (optional)
 
@@ -321,7 +324,7 @@ Event types: `SyncStarted`, `SyncProgress`, `SyncCompleted`, `SyncErrorEvent`, `
 engine.dispose();
 ```
 
-Call `dispose()` on shutdown -- it stops auto-sync and closes the stream controller.
+Call `dispose()` on shutdown — it stops auto-sync and closes the stream controller.
 
 ## Full Example
 

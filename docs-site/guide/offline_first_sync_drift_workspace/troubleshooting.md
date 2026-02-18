@@ -1,3 +1,6 @@
+---
+sidebar_position: 14
+---
 # Troubleshooting & FAQ
 
 Diagnostics and solutions for common `offline_first_sync_drift` issues.
@@ -88,8 +91,8 @@ final op = UpsertOp.create(
 
 **Dual retry architecture:**
 
-1. **RestTransport._withRetry()** -- retries HTTP requests on 429, 5xx, and network errors. `maxRetries` (5), `backoffMin` (1 sec), `backoffMax` (2 min).
-2. **PushService._pushBatch()** -- retries the batch on transport exceptions. `maxPushRetries` (5) from `SyncConfig`.
+1. **RestTransport._withRetry()** — retries HTTP requests on 429, 5xx, and network errors. `maxRetries` (5), `backoffMin` (1 sec), `backoffMax` (2 min).
+2. **PushService._pushBatch()** — retries the batch on transport exceptions. `maxPushRetries` (5) from `SyncConfig`.
 
 In the worst case, a single operation is retried up to `maxRetries * maxPushRetries` times.
 
@@ -115,7 +118,7 @@ Check the server: `await transport.health()` (GET `/health` -> 2xx).
 
 ## 6. Data Gets Duplicated
 
-**Cause 1:** No primary key defined. `PullService` uses `InsertMode.insertOrReplace` -- without a PK, each pull creates a new record.
+**Cause 1:** No primary key defined. `PullService` uses `InsertMode.insertOrReplace` — without a PK, each pull creates a new record.
 
 ```dart
 class Todos extends Table with SyncColumns {
@@ -167,7 +170,7 @@ await db.purgeOutboxOlderThan(DateTime.now().subtract(Duration(days: 7)));
 
 ## 8. fullResync() Is Slow
 
-`fullResync()` does not accept a `kinds` parameter -- all tables are synced. Sequence: push outbox -> reset cursors -> optionally clear tables -> pull all data from scratch.
+`fullResync()` does not accept a `kinds` parameter — all tables are synced. Sequence: push outbox -> reset cursors -> optionally clear tables -> pull all data from scratch.
 
 **Tuning pageSize:**
 
@@ -226,7 +229,7 @@ final todoEngine = SyncEngine(db: todoDb, transport: todoTransport, tables: [tod
 final chatEngine = SyncEngine(db: chatDb, transport: chatTransport, tables: [msgTable]);
 ```
 
-For a single DB with different servers -- use one SyncEngine with a custom `TransportAdapter` that routes requests by `kind`.
+For a single DB with different servers — use one SyncEngine with a custom `TransportAdapter` that routes requests by `kind`.
 
 ---
 

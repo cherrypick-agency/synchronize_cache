@@ -1,3 +1,6 @@
+---
+sidebar_position: 8
+---
 # Flutter Integration
 
 Integration patterns for `offline_first_sync_drift` with Flutter: Provider/Riverpod, reactive UI, lifecycle management, error handling.
@@ -19,7 +22,7 @@ dependencies:
 
 ---
 
-## 1. SyncService -- ChangeNotifier Wrapper over SyncEngine
+## 1. SyncService — ChangeNotifier Wrapper over SyncEngine
 
 ```dart
 enum SyncStatus { idle, syncing, error }
@@ -150,7 +153,7 @@ final syncServiceProvider = ChangeNotifierProvider<SyncService>((ref) {
 
 ## 3. StreamBuilder for Reactive Data
 
-Drift `watch()` returns a `Stream` that updates automatically -- both on local writes and on pull from the server:
+Drift `watch()` returns a `Stream` that updates automatically — both on local writes and on pull from the server:
 
 ```dart
 class TodoListBody extends StatelessWidget {
@@ -316,7 +319,7 @@ Scaffold(
 )
 ```
 
-For an empty list, wrap the placeholder in a `ListView` -- `RefreshIndicator` requires a scrollable child.
+For an empty list, wrap the placeholder in a `ListView` — `RefreshIndicator` requires a scrollable child.
 
 ---
 
@@ -475,7 +478,7 @@ Future<void> _saveTodo(BuildContext context) async {
 
 ---
 
-## 9. Dispose -- Cleanup Order
+## 9. Dispose — Cleanup Order
 
 ```
 1. StreamSubscription.cancel()  -- stop listening to events
@@ -485,7 +488,7 @@ Future<void> _saveTodo(BuildContext context) async {
 
 `SyncEngine.dispose()` **does not close** the database and **does not await** completion of the current `sync()`.
 
-**Provider** -- `ChangeNotifierProvider` calls `dispose()` automatically. The DB at the `main()` level does not need to be closed explicitly.
+**Provider** — `ChangeNotifierProvider` calls `dispose()` automatically. The DB at the `main()` level does not need to be closed explicitly.
 
 **Riverpod:**
 

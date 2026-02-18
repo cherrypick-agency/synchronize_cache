@@ -1,3 +1,6 @@
+---
+sidebar_position: 13
+---
 # Architecture and Internals
 
 ## Architecture Overview
@@ -20,8 +23,8 @@ Each service performs a single task and receives dependencies via its constructo
 
 Each `sync()` call follows a **push-first** strategy:
 
-1. **Push** -- send all local changes from the outbox
-2. **Pull** -- receive all server changes since the last cursor
+1. **Push** — send all local changes from the outbox
+2. **Pull** — receive all server changes since the last cursor
 
 This ensures the server receives local changes before the client starts downloading new data, minimizing the number of conflicts.
 
@@ -207,7 +210,7 @@ for (final entry in conflictOps.entries) {
 }
 ```
 
-If `skipConflictingOps = true`, unresolved conflicts are removed from the outbox. If `false` -- they remain for the next sync.
+If `skipConflictingOps = true`, unresolved conflicts are removed from the outbox. If `false` — they remain for the next sync.
 
 ---
 
@@ -298,15 +301,15 @@ Pagination ends when:
 A conflict occurs when the server returns `PushConflict` instead of `PushSuccess`. This means the data on the server changed after the client read it (optimistic locking via `baseUpdatedAt`).
 
 `PushConflict` contains:
-- `serverData` -- current data on the server
-- `serverTimestamp` -- time of last server update
-- `serverVersion` -- version/ETag (optional)
+- `serverData` — current data on the server
+- `serverTimestamp` — time of last server update
+- `serverVersion` — version/ETag (optional)
 
 ### Resolution Strategies
 
 The strategy is determined in priority order:
-1. `TableConflictConfig.strategy` -- for a specific table
-2. `SyncConfig.conflictStrategy` -- global (default `autoPreserve`)
+1. `TableConflictConfig.strategy` — for a specific table
+2. `SyncConfig.conflictStrategy` — global (default `autoPreserve`)
 
 ```dart
 Future<ConflictResolution> _determineResolution(...) async {
@@ -387,7 +390,7 @@ Future<bool> _forcePushOp(Op op) async {
 The `autoPreserve` strategy (default) uses `ConflictUtils.preservingMerge()`:
 
 1. System fields (`id`, `updatedAt`, `createdAt`, `deletedAt`) are taken from the server
-2. If `changedFields` is specified -- only changed fields are taken from local data
+2. If `changedFields` is specified — only changed fields are taken from local data
 3. Local value != null, server value == null -> local value is used
 4. Lists are merged (union by `id` for objects, by value for primitives)
 5. Nested Maps are merged recursively
@@ -404,8 +407,8 @@ Offset-based pagination is unreliable for sync:
 - Records can be skipped or duplicated
 
 Cursor `(ts, lastId)` provides stable pagination:
-- `ts` (DateTime) -- timestamp of the last processed item
-- `lastId` (String) -- ID of the last processed item
+- `ts` (DateTime) — timestamp of the last processed item
+- `lastId` (String) — ID of the last processed item
 
 ### How the Cursor Works
 
@@ -416,7 +419,7 @@ class Cursor {
 }
 ```
 
-Request to server: "give me records updated after `ts`, and if `ts` is the same -- with ID after `lastId`".
+Request to server: "give me records updated after `ts`, and if `ts` is the same — with ID after `lastId`".
 
 **First sync**: cursor = null, `since` = epoch (1970-01-01). All data is loaded.
 
@@ -812,9 +815,9 @@ void _initServices() {
 ### Shared Dependencies
 
 All services share:
-- `StreamController<SyncEvent> _events` -- a single event stream
-- `SyncConfig _config` -- configuration
-- `TransportAdapter _transport` -- network transport
+- `StreamController<SyncEvent> _events` — a single event stream
+- `SyncConfig _config` — configuration
+- `TransportAdapter _transport` — network transport
 
 ### Lifecycle
 

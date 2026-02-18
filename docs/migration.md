@@ -1,3 +1,6 @@
+---
+sidebar_position: 12
+---
 # Migrations and Schema Evolution
 
 The library uses Drift's standard migration system (`schemaVersion`, `MigrationStrategy`).
@@ -241,7 +244,7 @@ MigrationStrategy get migration => MigrationStrategy(
 
 **Step 5.** `dart run build_runner build --delete-conflicting-outputs`.
 
-The cursor for the new table will be `null` -- pull will load all data from epoch automatically.
+The cursor for the new table will be `null` — pull will load all data from epoch automatically.
 
 ---
 
@@ -279,9 +282,9 @@ Update `fromJson`/`toJson` for the new field. After migration, call `fullResync(
 
 **Step 1.** Remove `SyncableTable` from `SyncEngine.tables`.
 
-**Option A -- keep the table without sync:** data is preserved, the table remains in `@DriftDatabase.tables`.
+**Option A — keep the table without sync:** data is preserved, the table remains in `@DriftDatabase.tables`.
 
-**Option B -- delete the table:**
+**Option B — delete the table:**
 
 ```dart
 if (from < 5) {
@@ -291,7 +294,7 @@ if (from < 5) {
 
 Remove from `@DriftDatabase.tables`, regenerate code.
 
-**Optional:** clear cursor -- `await db.resetAllCursors({'notes'})`.
+**Optional:** clear cursor — `await db.resetAllCursors({'notes'})`.
 
 ---
 
@@ -313,7 +316,7 @@ Server JSON may use the old name. Support both in `fromJson`:
 assigneeId: (json['assignee_id'] ?? json['owner_id']) as String?,
 ```
 
-In `toJson` -- use the name the server expects. During the transition period you can send both:
+In `toJson` — use the name the server expects. During the transition period you can send both:
 
 ```dart
 'owner_id': assigneeId,     // old name
@@ -366,9 +369,9 @@ MigrationStrategy get migration => MigrationStrategy(
 
 **Rules:**
 
-- Never remove old `if (from < N)` blocks -- a user may upgrade from any version.
+- Never remove old `if (from < N)` blocks — a user may upgrade from any version.
 - `onCreate` always calls `m.createAll()`.
-- `beforeOpen` -- for PRAGMAs and settings unrelated to migration.
+- `beforeOpen` — for PRAGMAs and settings unrelated to migration.
 
 ---
 
@@ -380,8 +383,8 @@ MigrationStrategy get migration => MigrationStrategy(
 | Changed `fromJson`/`toJson` mapping | yes | no |
 | Server model changed | yes | no |
 | Columns removed / significant structural change | yes | **yes** |
-| New table added | no | -- |
-| Nullable column added, still empty on server | no | -- |
+| New table added | no | — |
+| Nullable column added, still empty on server | no | — |
 
 Example invocation:
 
@@ -406,11 +409,11 @@ if (_needsResyncAfterMigration) {
 
 ## 7. Server Changes and Backward Compatibility
 
-**Adding a field on the server:** a client without an update will not break -- `fromJson` ignores unknown keys. After updating the client: add column, update `fromJson`, call `fullResync()`.
+**Adding a field on the server:** a client without an update will not break — `fromJson` ignores unknown keys. After updating the client: add column, update `fromJson`, call `fullResync()`.
 
 **Removing a field on the server:** make the field nullable in `fromJson` **before** removing it on the server.
 
-**Renaming a field:** transition period -- the server returns both names, the client checks both (`json['new'] ?? json['old']`).
+**Renaming a field:** transition period — the server returns both names, the client checks both (`json['new'] ?? json['old']`).
 
 ### Deploy Order
 

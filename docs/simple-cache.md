@@ -1,3 +1,6 @@
+---
+sidebar_position: 4
+---
 # Simple Cache
 
 A guide to the basic offline-first scenario: local data storage with automatic server synchronization.
@@ -22,10 +25,10 @@ Simple cache is suitable for applications where:
 
 The library uses the **Outbox pattern**:
 
-1. **Reading** -- always from the local Drift database. Instant response, works offline.
-2. **Writing** -- data is saved to the local DB and the operation is placed in a queue (outbox) via `db.enqueue(...)`.
-3. **Push** -- when `engine.sync()` is called, all operations from the outbox are sent to the server.
-4. **Pull** -- after push, the engine downloads new data from the server (cursor-based pagination) and applies it to the local DB.
+1. **Reading** — always from the local Drift database. Instant response, works offline.
+2. **Writing** — data is saved to the local DB and the operation is placed in a queue (outbox) via `db.enqueue(...)`.
+3. **Push** — when `engine.sync()` is called, all operations from the outbox are sent to the server.
+4. **Pull** — after push, the engine downloads new data from the server (cursor-based pagination) and applies it to the local DB.
 
 ```
 UI  -->  Drift DB  -->  Outbox  -->  sync()  -->  Server
@@ -222,7 +225,7 @@ final engine = SyncEngine(
 
 ### Reading
 
-Reading is done from the local Drift DB -- instant and network-free.
+Reading is done from the local Drift DB — instant and network-free.
 
 **Get a list (one-shot):**
 
@@ -298,7 +301,7 @@ Future<Todo> create({required String title, String? description}) async {
 
 ### Updating
 
-When updating, pass `baseUpdatedAt` -- the timestamp of the last known server state. This allows the engine to detect a conflict if the server updated the record since the last pull.
+When updating, pass `baseUpdatedAt` — the timestamp of the last known server state. This allows the engine to detect a conflict if the server updated the record since the last pull.
 
 ```dart
 Future<Todo> update(Todo todo, {String? title, bool? completed}) async {
@@ -710,5 +713,5 @@ A backend server is required for sync to work (see `example/todo_simple/backend/
 
 ## What's Next
 
-- **[Advanced Cache](./advanced-cache.md)** -- field-level merge, manual conflict resolution, multi-device sync
-- **[Backend & Transport](./backend-transport.md)** -- server-side implementation and `TransportAdapter` configuration
+- **[Advanced Cache](./advanced-cache.md)** — field-level merge, manual conflict resolution, multi-device sync
+- **[Backend & Transport](./backend-transport.md)** — server-side implementation and `TransportAdapter` configuration

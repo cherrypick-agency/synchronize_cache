@@ -1,3 +1,6 @@
+---
+sidebar_position: 7
+---
 # Backend and Transport
 
 A guide for backend developers on implementing a server API compatible with `offline_first_sync_drift`, and for client developers on configuring the transport layer.
@@ -57,9 +60,9 @@ Authorization: Bearer eyJhbGciOi...
 }
 ```
 
-- `items` -- array of JSON objects. Each object must contain `id` and `updated_at` (or `updatedAt`).
-- `nextPageToken` -- string for requesting the next page. `null` if this is the last page.
-- Sorting: `ORDER BY updated_at ASC, id ASC` -- required for stable pagination.
+- `items` — array of JSON objects. Each object must contain `id` and `updated_at` (or `updatedAt`).
+- `nextPageToken` — string for requesting the next page. `null` if this is the last page.
+- Sorting: `ORDER BY updated_at ASC, id ASC` — required for stable pagination.
 
 **Response Codes:**
 
@@ -87,7 +90,7 @@ Creates or updates an entity (upsert). The client generates the `id` (UUID) itse
 | `Authorization` | Authorization token |
 | `Content-Type` | `application/json` |
 | `X-Idempotency-Key` | Operation UUID (`opId`) for duplicate protection |
-| `X-Force-Update` | `true` -- skip conflict checks (after client-side merge) |
+| `X-Force-Update` | `true` — skip conflict checks (after client-side merge) |
 
 **Request Body:**
 
@@ -99,7 +102,7 @@ Creates or updates an entity (upsert). The client generates the `id` (UUID) itse
 }
 ```
 
-- `_baseUpdatedAt` -- timestamp of the version the client based its changes on. The server compares it with the current `updated_at` of the record to detect conflicts. Absent for new records.
+- `_baseUpdatedAt` — timestamp of the version the client based its changes on. The server compares it with the current `updated_at` of the record to detect conflicts. Absent for new records.
 
 **Response Format (200 OK / 201 Created):**
 
@@ -200,7 +203,7 @@ DELETE /{kind}/{id}
 |--------|-------------|
 | `Authorization` | Authorization token |
 | `X-Idempotency-Key` | Operation UUID |
-| `X-Force-Delete` | `true` -- skip conflict checks |
+| `X-Force-Delete` | `true` — skip conflict checks |
 
 **Query Parameters:**
 
@@ -301,7 +304,7 @@ The client calls `health()` before starting synchronization to verify server ava
 
 ## RestTransport Configuration
 
-`RestTransport` -- a ready-made `TransportAdapter` implementation for REST APIs. Located in the `offline_first_sync_drift_rest` package.
+`RestTransport` — a ready-made `TransportAdapter` implementation for REST APIs. Located in the `offline_first_sync_drift_rest` package.
 
 ### Constructor Parameters
 
@@ -322,8 +325,8 @@ RestTransport({
 
 | Parameter | Type | Default | Description |
 |-----------|------|:---:|-------------|
-| `base` | `Uri` | -- | Base API URL. All requests are built relative to it |
-| `token` | `Future<String> Function()` | -- | Function returning the `Authorization` header value |
+| `base` | `Uri` | — | Base API URL. All requests are built relative to it |
+| `token` | `Future<String> Function()` | — | Function returning the `Authorization` header value |
 | `client` | `http.Client?` | `http.Client()` | HTTP client. Useful for tests or adding interceptors |
 | `backoffMin` | `Duration` | 1 second | Minimum delay between retries |
 | `backoffMax` | `Duration` | 2 minutes | Maximum delay between retries |
@@ -408,7 +411,7 @@ A conflict occurs when a client attempts to update a record that has already bee
 2. The client modifies the record offline
 3. Another client updates the same record, `updated_at` becomes `"2025-01-15T11:00:00Z"`
 4. The first client sends a push with `_baseUpdatedAt: "2025-01-15T10:00:00Z"`
-5. The server compares: `10:00:00 != 11:00:00` -- conflict
+5. The server compares: `10:00:00 != 11:00:00` — conflict
 
 ### Server-Side Validation Algorithm
 
@@ -437,9 +440,9 @@ The client supports multiple response formats. Recommended:
 ```
 
 The client looks for server data in the following priority order:
-1. `body["current"]` -- recommended format
-2. `body["serverData"]` -- alternative format
-3. `body` as a whole -- fallback
+1. `body["current"]` — recommended format
+2. `body["serverData"]` — alternative format
+3. `body` as a whole — fallback
 
 Server timestamp is extracted from:
 1. `body["serverTimestamp"]`
@@ -516,7 +519,7 @@ async function handlePut(req, res) {
 
 Recommendations:
 - Store the cache for 24 hours (sufficient to cover extended offline periods)
-- Cache key -- `idempotency:{opId}`
+- Cache key — `idempotency:{opId}`
 - Cache the full response (status + body)
 - For DELETE it is sufficient to store the execution flag
 
@@ -558,7 +561,7 @@ abstract interface class TransportAdapter {
 
 ### Data Types
 
-**PullPage** -- pull request result:
+**PullPage** — pull request result:
 
 ```dart
 class PullPage {
@@ -569,7 +572,7 @@ class PullPage {
 }
 ```
 
-**Op** -- sealed class of outbox operations:
+**Op** — sealed class of outbox operations:
 
 ```dart
 sealed class Op {
@@ -590,7 +593,7 @@ class DeleteOp extends Op {
 }
 ```
 
-**PushResult** -- sealed class of push results:
+**PushResult** — sealed class of push results:
 
 ```dart
 sealed class PushResult {}
@@ -614,7 +617,7 @@ class PushError extends PushResult {
 }
 ```
 
-**BatchPushResult** -- batch push result:
+**BatchPushResult** — batch push result:
 
 ```dart
 class BatchPushResult {
@@ -631,7 +634,7 @@ class OpPushResult {
 }
 ```
 
-**FetchResult** -- sealed class of fetch results:
+**FetchResult** — sealed class of fetch results:
 
 ```dart
 sealed class FetchResult {}
@@ -878,9 +881,9 @@ The Cursor stores the last synchronization position for each `kind`. On the next
 
 1. **First pull:** `updatedSince=1970-01-01T00:00:00Z`, `pageToken=null`, `afterId=null`
 2. The server returns the first N records sorted by `(updated_at, id)`
-3. If more records exist -- it returns `nextPageToken`
+3. If more records exist — it returns `nextPageToken`
 4. The client requests the next page with `pageToken`
-5. When `nextPageToken == null` -- all data has been fetched
+5. When `nextPageToken == null` — all data has been fetched
 6. The client saves the cursor: `ts` and `lastId` from the last element
 7. **Next pull:** `updatedSince = saved cursor.ts`, `afterId = cursor.lastId`
 
@@ -988,8 +991,8 @@ GET /tasks?updatedSince=2025-01-01T00:00:00Z&limit=500&includeDeleted=true
 ```
 
 The server must:
-- When `includeDeleted=true` -- return **all** records, including those where `deleted_at IS NOT NULL`
-- When `includeDeleted=false` -- return only records where `deleted_at IS NULL`
+- When `includeDeleted=true` — return **all** records, including those where `deleted_at IS NOT NULL`
+- When `includeDeleted=false` — return only records where `deleted_at IS NULL`
 
 ### Client-Side Handling
 
@@ -1220,8 +1223,8 @@ async function handleDeleteOp(op) {
 
 ### Which Codes Are Retried
 
-- `429 Too Many Requests` -- respecting the `Retry-After` header
-- `500-599` -- server errors
+- `429 Too Many Requests` — respecting the `Retry-After` header
+- `500-599` — server errors
 
 ### Exponential Backoff
 
