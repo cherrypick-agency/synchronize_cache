@@ -1,13 +1,21 @@
 :root {
+  --vp-c-brand-1: #7c3aed;
+  --vp-c-brand-2: #6d28d9;
+  --vp-c-brand-3: #5b21b6;
+  --vp-c-brand-soft: rgba(124, 58, 237, 0.14);
   --vp-nav-bg-color: rgba(255, 255, 255, 0.5);
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(135deg, #FF6D00 0%, #E65100 40%, #FF9100 100%);
+  --vp-home-hero-name-background: linear-gradient(135deg, #a855f7 0%, #7c3aed 40%, #6d28d9 100%);
 }
 
 .dark {
+  --vp-c-brand-1: #a78bfa;
+  --vp-c-brand-2: #8b5cf6;
+  --vp-c-brand-3: #7c3aed;
+  --vp-c-brand-soft: rgba(167, 139, 250, 0.14);
   --vp-nav-bg-color: rgba(30, 30, 32, 0.5);
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(135deg, #FFAB40 0%, #FF6D00 50%, #FFD180 100%);
+  --vp-home-hero-name-background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 50%, #8b5cf6 100%);
 }
 
 /* Gradient text on hero name */
@@ -24,51 +32,27 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Animated gradient glow behind hero */
-.VPHero {
-  position: relative;
-  z-index: 0;
+/* Ambient purple glows — applied as background on .VPHome */
+.VPHome {
+  background-image:
+    radial-gradient(ellipse 800px 600px at 30% 0%, rgba(124, 58, 237, 0.35) 0%, rgba(139, 92, 246, 0.15) 30%, transparent 60%),
+    radial-gradient(ellipse 500px 500px at 85% 5%, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.08) 35%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 10% 40%, rgba(124, 58, 237, 0.18) 0%, rgba(167, 139, 250, 0.08) 30%, transparent 55%),
+    radial-gradient(ellipse 600px 500px at 90% 50%, rgba(167, 139, 250, 0.15) 0%, rgba(124, 58, 237, 0.06) 35%, transparent 55%),
+    radial-gradient(ellipse 700px 600px at 75% 85%, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.08) 30%, transparent 55%),
+    radial-gradient(ellipse 500px 400px at 15% 90%, rgba(167, 139, 250, 0.12) 0%, rgba(124, 58, 237, 0.05) 35%, transparent 55%);
+  background-repeat: no-repeat;
+  background-attachment: scroll;
 }
 
-.VPHero::before {
-  content: "";
-  position: absolute;
-  top: -20%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 109, 0, 0.12) 0%,
-    rgba(255, 145, 0, 0.08) 40%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  filter: blur(60px);
-  animation: hero-glow 6s ease-in-out infinite alternate;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.dark .VPHero::before {
-  background: radial-gradient(
-    circle,
-    rgba(255, 171, 64, 0.1) 0%,
-    rgba(255, 109, 0, 0.06) 40%,
-    transparent 70%
-  );
-}
-
-@keyframes hero-glow {
-  0% {
-    opacity: 0.6;
-    transform: translateX(-50%) scale(1);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) scale(1.15);
-  }
+.dark .VPHome {
+  background-image:
+    radial-gradient(ellipse 800px 600px at 30% 0%, rgba(167, 139, 250, 0.25) 0%, rgba(139, 92, 246, 0.12) 30%, transparent 60%),
+    radial-gradient(ellipse 500px 500px at 85% 5%, rgba(139, 92, 246, 0.18) 0%, rgba(124, 58, 237, 0.06) 35%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 10% 40%, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.06) 30%, transparent 55%),
+    radial-gradient(ellipse 600px 500px at 90% 50%, rgba(167, 139, 250, 0.12) 0%, rgba(124, 58, 237, 0.04) 35%, transparent 55%),
+    radial-gradient(ellipse 700px 600px at 75% 85%, rgba(167, 139, 250, 0.18) 0%, rgba(139, 92, 246, 0.06) 30%, transparent 55%),
+    radial-gradient(ellipse 500px 400px at 15% 90%, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.04) 35%, transparent 55%);
 }
 
 /* Feature cards: icon + title on same line */
